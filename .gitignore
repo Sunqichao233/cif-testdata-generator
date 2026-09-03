@@ -1,0 +1,30 @@
+# 生成されたテストデータ / generated test data
+output/*
+!output/.gitkeep
+
+# 実行ログ / execution logs
+logs/*
+!logs/.gitkeep
+
+# Excel の一時ロックファイル / Excel temporary lock files
+~$*.xlsx
+*.xlsx.lk
+
+# ファイルが開かれている場合の退避先 / fallback file when the workbook is locked
+docs/*_new.xlsx
+
+# Python
+__pycache__/
+*.py[cod]
+
+# OS / editor
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+# 業務メモ（社内メールアドレス等を含むため公開しない）
+# work memo - contains internal e-mail addresses, never publish
+9.4
+9.*
+*.memo

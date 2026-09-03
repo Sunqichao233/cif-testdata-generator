@@ -1,0 +1,64 @@
+{
+  "_comment": "CIF情報ファイル テストデータ生成設定 / CIF test data generator settings",
+
+  "output": {
+    "directory": "output",
+    "logDirectory": "logs",
+    "cifPrefix": "CIF",
+    "searchPrefix": "SEARCH",
+    "useDateInName": true,
+    "extension": ".txt",
+    "encoding": "shift_jis",
+    "newline": "CRLF",
+    "trailingNewline": true
+  },
+
+  "generation": {
+    "profile": "minimal",
+    "recordIdDigits": 10,
+    "startNumber": 1,
+    "lengthCheckMode": "char",
+    "setRecordIdForSearch": true,
+    "overwrite": true
+  },
+
+  "_extraColumns_comment": "設計書原本の No.14 以降が未入手のため、実データ画面から推定した列。enabled=true で No.13 の後ろに追加出力する / 规格书 No.14 之后未获取，此为根据实际数据画面推定的列。enabled=true 时追加输出",
+  "extraColumns": {
+    "enabled": false,
+    "columns": [
+      { "no": 14, "name": "未確定", "value": "" },
+      { "no": 15, "name": "未確定", "value": "" },
+      { "no": 16, "name": "未確定", "value": "" },
+      { "no": 17, "name": "未確定", "value": "" },
+      { "no": 18, "name": "未確定", "value": "" },
+      { "no": 19, "name": "未確定", "value": "" },
+      { "no": 20, "name": "未確定", "value": "" },
+      { "no": 21, "name": "未確定", "value": "" },
+      { "no": 22, "name": "未確定（実データでは契約番号形式）", "value": "A100000001-01" },
+      { "no": 23, "name": "未確定（実データでは1桁フラグ）", "value": "0" }
+    ]
+  },
+
+  "_matching_comment": "照合パターン(2x3x3=18通り)の値。レコードID = 1<f1>2<f2>3<f3>[h]、h=ヒット想定 / 匹配模式取值。h 表示预期命中",
+  "matching": {
+    "butenCodeOverride": "0011",
+    "furigana": { "A": "アイダマナ", "B": "アイタナナ" },
+    "kanji":    { "A": "相田　マナ", "B": "相他ナナ", "C": "" },
+    "birthday": { "A": "20000101",   "B": "20010101", "C": "" }
+  },
+
+  "targets": [
+    { "id": "001", "kind": "cif",    "label": "CIF 横浜銀行用",        "butenCode": "0005",  "count": 100, "enabled": true },
+    { "id": "002", "kind": "cif",    "label": "CIF L&F(1)用",          "butenCode": "LF003", "count": 100, "enabled": true },
+    { "id": "003", "kind": "cif",    "label": "CIF L&F(2)用",          "butenCode": "LF004", "count": 100, "enabled": true },
+    { "id": "S01", "kind": "search", "label": "検索対象者 横浜銀行用", "butenCode": "0003",  "count": 50,  "enabled": true },
+    { "id": "S02", "kind": "search", "label": "検索対象者 L&F用",      "butenCode": "LF002", "count": 50,  "enabled": true }
+  ],
+
+  "validation": {
+    "enabled": true,
+    "stopOnError": false,
+    "checkDuplicateRecordId": true,
+    "checkDuplicateFurigana": true
+  }
+}

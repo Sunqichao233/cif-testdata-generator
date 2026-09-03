@@ -1,0 +1,10 @@
+# 参考データは Shift_JIS / CRLF のバイト列をそのまま保持する（改行変換を禁止）
+# Keep reference data byte-exact (Shift_JIS / CRLF) - no EOL conversion
+samples/**   -text
+
+# Windows で実行するスクリプトは CRLF 固定
+*.bat        text eol=crlf
+*.ps1        text eol=crlf
+
+# バイナリ
+*.xlsx       binary
