@@ -1,0 +1,81 @@
+@echo off
+rem ============================================================
+rem  CIF情報ファイル 作成バッチ（汎用版）
+rem
+rem  使い方:
+rem    gen.bat <出力ファイル名> <件数> <部店コード> [ID2接頭辞]
+rem
+rem  例:
+rem    gen.bat 検索対象者_LF 10000 LF002
+rem      → レコードID2 = レコードID（検索対象者用）
+rem    gen.bat U2KJD002 9664 LF003 LF003
+rem      → レコードID2 = LF003-000001（CIF用）
+rem ============================================================
+setlocal enabledelayedexpansion
+
+rem ---------- 引数チェック ----------
+if "%~3"=="" (
+    echo [ERROR] 引数が足りません
+    echo   使い方: %~nx0 ^<出力ファイル名^> ^<件数^> ^<部店コード^> [ID2接頭辞]
+    echo   例:     %~nx0 検索対象者_LF 10000 LF002
+    pause
+    exit /b 1
+)
+
+set "OUT=%~1"
+set "MAX=%~2"
+set "BUTEN=%~3"
+set "ID2PRE=%~4"
+
+rem ---------- 氏名パーツ定義 ----------
+set "SEI=サトウ スズキ タカハシ タナカ イトウ ワタナベ ヤマモト ナカムラ コバヤシ カトウ ヨシダ ヤマダ ササキ ヤマグチ マツモト イノウエ キムラ ハヤシ シミズ ヤマザキ モリ アベ イケダ ハシモト イシカワ ヤマシタ オガワ イシイ ハセガワ ゴトウ オカダ ムラカミ コンドウ イシダ サカモト エンドウ アオキ フジタ ニシムラ フクダ オオタ ミウラ フジイ オカモト マツダ ナカガワ ナカノ ハラダ ウエダ モリタ シマダ コジマ ワダ ヤマウチ マスダ フジワラ ミヤザキ ナガイ ヒラノ オオノ タムラ タケダ ノグチ マツオ"
+set "MEI1=イチ ジ サブ シ ゴ タロ ハナ ヨシ ミチ ナナ ケン マサ ヒロ ユウ アキ カズ トモ ノブ ハル ナオ シン タツ テル ヤス"
+set "MEI2=ロウ コ タ キ ミ オ スケ ヤ エ ノ ト ナ リ カ ジ ヘイ ゾウ ヨ セイ ヒコ オミ フミ ホ シ ハ ネ サ ム ツ ラ"
+
+rem ---------- 生成可能件数チェック ----------
+set "CNT1=0"
+for %%n in (%SEI%)  do set /a "CNT1+=1"
+set "CNT2=0"
+for %%n in (%MEI1%) do set /a "CNT2+=1"
+set "CNT3=0"
+for %%n in (%MEI2%) do set /a "CNT3+=1"
+set /a "CAPA=CNT1*CNT2*CNT3"
+
+echo [INFO] 姓:%CNT1% 前半:%CNT2% 後半:%CNT3% → 生成可能 %CAPA% 件
+if %MAX% GTR %CAPA% (
+    echo [ERROR] 件数 %MAX% が生成可能件数 %CAPA% を超えています
+    echo         氏名パーツを増やしてください
+    pause
+    exit /b 1
+)
+
+rem ---------- 出力 ----------
+echo [INFO] %OUT% を作成中... 部店=%BUTEN% 件数=%MAX%
+set "SEQ=0"
+
+> "%OUT%" (
+  for %%a in (%SEI%)  do (
+  for %%b in (%MEI1%) do (
+  for %%c in (%MEI2%) do (
+      set /a "SEQ+=1"
+      if !SEQ! LEQ %MAX% (
+          set "N=00000!SEQ!"
+          set "N=!N:~-6!"
+
+          rem ID2接頭辞が指定されていればCIF形式、なければレコードIDと同じ
+          if "%ID2PRE%"=="" (
+              set "ID2=!N!"
+          ) else (
+              set "ID2=%ID2PRE%-!N!"
+          )
+
+          echo(!N!##%%a　%%b%%c##########!BUTEN!#############!ID2!#0
+      )
+  )))
+)
+
+rem ---------- 結果確認 ----------
+echo [INFO] 完了
+find /c /v "" "%OUT%"
+endlocal
+exit /b 0

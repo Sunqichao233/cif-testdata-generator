@@ -1,0 +1,13 @@
+配套的一键生成脚本
+
+再建一个 run_all.bat，把 5 个文件一次跑完：
+
+bat
+@echo off
+call gen.bat 検索対象者_横浜  10000 0003
+call gen.bat 検索対象者_LF    10000 LF002
+call gen.bat U2KJD001        10000 0005  YOKO
+call gen.bat U2KJD002         9664 LF003 LF003
+call gen.bat U2KJD003         9664 LF004 LF004
+echo ===== 全ファイル作成完了 =====
+pause

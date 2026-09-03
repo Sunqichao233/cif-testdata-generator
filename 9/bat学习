@@ -1,0 +1,19 @@
+日文入门（适合你现在的环境）
+
+Windowsバッチファイル入門
+https://batchfile.hideharublog.com/
+面向初学者、专门讲 bat 基础的站点。整站就一个主题，结构清楚。 
+Hideharublog
+
+Qiita「Windowsバッチファイル徹底入門」
+https://qiita.com/mkuwan/items/0a00ffff1ae829008e82
+从基础到应用、实务活用的体系化整理，样例代码多。里面就提到了你踩过的坑——变量展开 %VAR% 只在作为 bat 文件执行时才正常工作，在命令行逐行输入不会展开。 
+Qiita
+Qiita
+
+犬でもわかるバッチファイルの作り方（アーザス Blog）
+https://a-zs.net/inuwaka-batch-03/
+新人视角写的系列，讲的是「一个刚入职两个月的人做 bat 时觉得重要的地方」，包括 bat/vbs/ps1 三者怎么选、为什么要用相对路径而不是绝对路径。跟你的处境很像，读起来不累。 
+A-zs
+
+顺带一提，学日文技术词汇也有好处——之后跟阿部さん、池田さん讨论时能用对术语。

@@ -23,8 +23,3 @@ desktop.ini
 .vscode/
 .idea/
 
-# 業務メモ（社内メールアドレス等を含むため公開しない）
-# work memo - contains internal e-mail addresses, never publish
-9.4
-9.*
-*.memo
