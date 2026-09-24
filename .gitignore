@@ -1,6 +1,8 @@
-# 生成されたテストデータ / generated test data
-output/*
-!output/.gitkeep
+# 生成されたテストデータ / 生成的测试数据
+# ※ "output/*" だとスラッシュを含むためルート直下にしか効かない。
+#    どの階層の output/ も除外するには "**/" を付ける必要がある
+**/output/*
+!**/output/.gitkeep
 
 # 実行ログ / execution logs
 logs/*
