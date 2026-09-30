@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>libInfo 変換ツール</title>
+<style>
+  body { font-family: "Meiryo", "Yu Gothic", sans-serif; line-height: 1.8;
+         max-width: 720px; margin: 40px auto; padding: 0 24px; color: #222; }
+  h1 { font-size: 20px; border-bottom: 2px solid #333; padding-bottom: 8px; }
+  h2 { font-size: 16px; margin-top: 32px; border-left: 4px solid #333; padding-left: 10px; }
+  ol { padding-left: 24px; }
+  li { margin-bottom: 8px; }
+  code { background: #f2f2f2; padding: 2px 6px; border-radius: 3px;
+         font-family: "Consolas", monospace; font-size: 90%; }
+  table { border-collapse: collapse; margin-top: 8px; }
+  th, td { border: 1px solid #ccc; padding: 6px 12px; text-align: left; font-size: 95%; }
+  th { background: #f2f2f2; }
+  .note { background: #fff8e1; border-left: 4px solid #e6a700; padding: 10px 14px; margin-top: 12px; }
+</style>
+</head>
+<body>
+
+<h1>libInfo 変換ツール</h1>
+
+<h2>使い方</h2>
+<ol>
+  <li><code>libInfo</code> のファイルを
+      <strong>「ここにlibInfo.txtをドラッグ＆ドロップしてください.bat」</strong> に乗せる</li>
+  <li>調査結果が出るので確認する（★が付いた項目は要注意）</li>
+  <li>問題なければ <code>Y</code> を押す</li>
+</ol>
+
+<h2>出力</h2>
+<p><code>output</code> フォルダに2つできます。</p>
+<table>
+  <tr><th>ファイル</th><th>内容</th></tr>
+  <tr><td><code>（元の名前）_変換後_YYYYMMDDHHII.txt</code></td><td>変換結果（タブ区切り）</td></tr>
+  <tr><td><code>（元の名前）_変更ログ_YYYYMMDDHHII.txt</code></td><td>削除した行の一覧</td></tr>
+</table>
+<p>ファイル名の末尾は実行日時です。実行するたびに別ファイルになります。</p>
+
+<h2>手作業の結果と比べる</h2>
+<p><code>script</code> フォルダの <strong>compare.bat</strong> をダブルクリックします。<br>
+手作業の正解ファイルは、ツールのフォルダに置いてください。</p>
+
+<h2>設定を変える</h2>
+<p><code>script\convert.ps1</code> の先頭に、文字コード・削除キーワードなどがあります。</p>
+
+<div class="note">
+  入力ファイルは Shift_JIS で読みます。出力も Shift_JIS です。
+</div>
+
+</body>
+</html>

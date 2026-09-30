@@ -33,19 +33,47 @@ function Out-Line {
 }
 
 # ---- ファイルの自動検出 ----
+# このスクリプトは script\ にある。探すのはツールのルートと output\ の両方
+$ToolRoot = Split-Path -Parent $PSScriptRoot
+$OutDir   = Join-Path $ToolRoot 'output'
+
 function Find-One {
-    param([string]$Pattern, [string]$What)
+    param([string]$Pattern, [string]$What, [switch]$NoStamp)
     # -Filter は日本語のファイル名で不安定なことがあるため、全件取得してから -like で絞る。
     # 同名候補が複数ある場合は最新のものを使う
-    $f = @(Get-ChildItem -LiteralPath $PSScriptRoot -File |
-           Where-Object { $_.Name -like $Pattern } |
-           Sort-Object LastWriteTime -Descending)
-    if ($f.Count -eq 0) { throw "$What が見つかりません（ファイル名が $Pattern の形）。引数でパスを指定してください。" }
+    $dirs = @($OutDir, $ToolRoot) | Where-Object { Test-Path -LiteralPath $_ }
+    $f = @(foreach ($d in $dirs) {
+               Get-ChildItem -LiteralPath $d -File -ErrorAction SilentlyContinue
+           }) |
+           Where-Object { $_.Name -like $Pattern }
+    # 手作業の正解はタイムスタンプが付かない *_変換後.txt。
+    # スクリプトの出力 *_変換後_yyyyMMddHHmm.txt と区別するため、数字付きを除く
+    if ($NoStamp) { $f = @($f | Where-Object { $_.BaseName -notmatch '_\d{8,}$' }) }
+    $f = @($f | Sort-Object LastWriteTime -Descending)
+    if ($f.Count -eq 0) {
+        Write-Host ''
+        Write-Host " $What が見つかりません（ファイル名が $Pattern の形のもの）。" -ForegroundColor Yellow
+        Write-Host ''
+        Write-Host ' 見つかった .txt ファイル:'
+        $txt = @(foreach ($d in @($OutDir, $ToolRoot) | Where-Object { Test-Path -LiteralPath $_ }) {
+                     Get-ChildItem -LiteralPath $d -File -ErrorAction SilentlyContinue
+                 }) | Where-Object { $_.Name -like '*.txt' }
+        if ($txt.Count -eq 0) { Write-Host '   (なし)' }
+        else { $txt | ForEach-Object { Write-Host ('   ' + $_.Name) } }
+        Write-Host ''
+        Write-Host ' ファイル名が異なる場合は次のように指定してください:'
+        Write-Host '   compare.bat "スクリプトの出力.txt" "手作業の正解.txt"'
+        Write-Host ''
+        exit 1
+    }
     return $f[0].FullName
 }
-if (-not $Mine)   { $Mine   = Find-One '*_converted.txt' 'スクリプトの出力' }
-if (-not $Ref)    { $Ref    = Find-One '*_変換後.txt'    '手作業の正解' }
-if (-not $Report) { $Report = Join-Path $PSScriptRoot 'compare_report.txt' }
+if (-not $Mine)   { $Mine   = Find-One '*_変換後_*.txt' 'スクリプトの出力' }
+if (-not $Ref)    { $Ref    = Find-One '*_変換後*.txt'  '手作業の正解' -NoStamp }
+if (-not $Report) {
+    if (-not (Test-Path -LiteralPath $OutDir)) { New-Item -ItemType Directory -Path $OutDir -Force | Out-Null }
+    $Report = Join-Path $OutDir ('compare_report_{0}.txt' -f (Get-Date -Format 'yyyyMMddHHmm'))
+}
 
 function Read-Lines {
     param([string]$p)

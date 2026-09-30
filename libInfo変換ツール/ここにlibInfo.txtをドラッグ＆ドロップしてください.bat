@@ -1,21 +1,16 @@
 @echo off
 rem ============================================================
 rem  libInfo.txt 変換処理
-rem
-rem  使い方1 : libInfo.txt をこの run.bat にドラッグ＆ドロップする
-rem  使い方2 : libInfo.txt を同じフォルダに置いて run.bat をダブルクリック
-rem
-rem  流れ : まず調査結果を表示 → Y を押すと変換を実行
-rem  出力 : <ファイル名>_converted.txt
+rem  この bat に libInfo のファイルをドラッグ＆ドロップしてください
 rem ============================================================
 
 setlocal
 set "PS_EXE=%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe"
-set "PS1=%~dp0convert.ps1"
+set "PS1=%~dp0script\convert.ps1"
 set "TARGET=%~1"
 
 if not exist "%PS1%" (
-    echo [エラー] convert.ps1 が見つかりません: %PS1%
+    echo [エラー] script\convert.ps1 が見つかりません
     goto :fin
 )
 

@@ -24,6 +24,11 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+# このスクリプトは script\ に置かれている。入力の探索と出力はツールのルート基準にする
+$ToolRoot = Split-Path -Parent $PSScriptRoot
+$OutDir   = Join-Path $ToolRoot 'output'
+$Stamp    = Get-Date -Format 'yyyyMMddHHmm'     # 指摘6・7 の YYYYMMDDHHII（12桁）
+
 # ---- 削除パターン（手順書 (2)～(7)(9)）----
 # すべて「部分一致・大文字小文字を区別しない」の文字列比較。正規表現は使わない。
 # (6) の bk. / org. の「.」を文字そのものとして扱う必要があるため。
@@ -48,11 +53,10 @@ $OldIndex = $Patterns.IndexOf('old')
 # org 付きでも正規の資材で、削除してはいけないものがある。
 # ここにキーワード（部分一致・大文字小文字区別なし）を書くと、その行は保護される。
 $KeepPatterns = @(
-    # 手作業の正解との突き合わせで判明したもの。正規のバッチのため残す
-    #   \common\batches\CIF_AfterRcv_org.bat
-    #   \common\batches\USERFILE_AfterRcv_org.bat
-    # 1件で両方をカバーできる（部分一致）。org. に当たっても削除されない
-    'AfterRcv_org.bat'
+    # 指摘4「保護不要」により、登録はゼロ。
+    # 仕組みだけ残してあるので、必要になったらここにキーワードを書けば保護できる。
+    # 削除してはいけない TextNormalize_ORG1.xml のような ORG 付きファイルは、
+    # org. が「org」＋ピリオドの一致であるため、そもそも削除対象にならない。
 )
 
 function Get-Enc {
@@ -80,12 +84,52 @@ function Convert-Line {
 }
 
 # ---- 入力ファイルの決定 ----
+# 引数が無ければ、同じフォルダの libInfo*.txt を探す。
+# 実ファイル名は libInfo_横東_開発AP#1.txt のように後ろが付くため、
+# 'libInfo.txt' 固定では見つからない。
 if (-not $Path) {
-    $here = Join-Path $PSScriptRoot 'libInfo.txt'
-    if (Test-Path -LiteralPath $here) { $Path = $here }
-    else { throw "入力ファイルが見つかりません。libInfo.txt を run.bat にドラッグするか、スクリプトと同じフォルダに置いてください。" }
+    $cand = @(Get-ChildItem -LiteralPath $ToolRoot -File -ErrorAction SilentlyContinue |
+              Where-Object { $_.Name -like 'libInfo*.txt' -and
+                             $_.Name -notlike '*_converted.txt' -and
+                             $_.Name -notlike '*_old_candidates.txt' -and
+                             $_.Name -notlike '*_変換後.txt' } |
+              Sort-Object LastWriteTime -Descending)
+
+    if ($cand.Count -eq 1) {
+        $Path = $cand[0].FullName
+    }
+    elseif ($cand.Count -gt 1) {
+        Write-Host ''
+        Write-Host ' 入力ファイルの候補が複数あります。どれを使うか決められません:' -ForegroundColor Yellow
+        $cand | ForEach-Object { Write-Host ('   ' + $_.Name) }
+        Write-Host ''
+        Write-Host ' 対象のファイルを bat に直接ドラッグ＆ドロップして実行してください。'
+        Write-Host ''
+        exit 1
+    }
+    else {
+        Write-Host ''
+        Write-Host ' 入力ファイルが見つかりません。' -ForegroundColor Yellow
+        Write-Host ''
+        Write-Host ' 対処:'
+        Write-Host '   ・libInfo のファイルを「ここにlibInfo.txtをドラッグ＆ドロップしてください.bat」に乗せる'
+        Write-Host '   ・または libInfo*.txt をツールのフォルダに置いて実行する'
+        Write-Host ''
+        Write-Host ' このフォルダにある .txt ファイル:'
+        $txt = @(Get-ChildItem -LiteralPath $ToolRoot -File -ErrorAction SilentlyContinue |
+                 Where-Object { $_.Name -like '*.txt' })
+        if ($txt.Count -eq 0) { Write-Host '   (なし)' }
+        else { $txt | ForEach-Object { Write-Host ('   ' + $_.Name) } }
+        Write-Host ''
+        exit 1
+    }
 }
-if (-not (Test-Path -LiteralPath $Path)) { throw "ファイルが存在しません: $Path" }
+if (-not (Test-Path -LiteralPath $Path)) {
+    Write-Host ''
+    Write-Host " ファイルが存在しません: $Path" -ForegroundColor Yellow
+    Write-Host ''
+    exit 1
+}
 
 $enc   = Get-Enc $InCharset
 $all   = $enc.GetString([System.IO.File]::ReadAllBytes($Path))
@@ -103,7 +147,7 @@ Write-Host ("  行末スペース : {0}" -f $(if ($TailSpace -eq 'all') { 'all�
 # ---- 1行ずつ処理 ----
 $hit      = New-Object 'int[]' $Patterns.Count
 $out      = New-Object 'System.Collections.Generic.List[string]'
-$oldBuf   = New-Object 'System.Collections.Generic.List[string]'
+$delBuf   = New-Object 'System.Collections.Generic.List[string]'   # 指摘4(b)・7: 削除した行を全部ここに
 $colCount = @{}
 $total = 0; $blank = 0; $deleted = 0; $kept = 0
 $sp4 = 0; $tailSpaceLines = 0; $maxTail = 0; $folderCnt = 0; $tailTab = 0
@@ -128,22 +172,25 @@ for ($i = 1; $i -lt $lines.Count; $i++) {     # 1 から開始 = 1行目を読�
     }
 
     $killed = $false; $onlyOld = $false
+    $matched = New-Object 'System.Collections.Generic.List[string]'
     for ($j = 0; $j -lt $Patterns.Count; $j++) {
         if ($s.IndexOf($Patterns[$j], [StringComparison]::OrdinalIgnoreCase) -ge 0) {
             $hit[$j]++
+            [void]$matched.Add($Patterns[$j])
             if ($j -eq $OldIndex) { $onlyOld = $true } else { $killed = $true }
         }
     }
     # "old" は部分一致なので folder / holder などにも当たる。
-    # 既定では手順書どおり削除するが、_old_candidates.txt に記録して後から追えるようにする。
-    # 誤爆が心配な場合は -KeepOld を付けると削除しない。
-    if ($onlyOld) {
-        [void]$oldBuf.Add($s)
-        if (-not $KeepOld) { $killed = $true }
-    }
+    # 既定は手順書どおり削除。誤爆が心配な場合は -KeepOld を付けると削除しない。
+    if ($onlyOld -and (-not $KeepOld)) { $killed = $true }
 
     if ($protected) { $killed = $false; $kept++ }
-    if ($killed) { $deleted++; continue }
+    if ($killed) {
+        $deleted++
+        # 削除した行はすべて変更ログへ。行頭にどのパターンで消えたかを付ける
+        [void]$delBuf.Add('[' + ($matched -join '][') + "]`t" + $s)
+        continue
+    }
 
     $conv = Convert-Line $s
     [void]$out.Add($conv)
@@ -153,6 +200,8 @@ for ($i = 1; $i -lt $lines.Count; $i++) {     # 1 から開始 = 1行目を読�
 }
 
 # ---- 調査結果 ----
+# 指摘3: 変換実行後は調査結果を再表示しない。check のときだけ出す
+if ($Mode -eq 'check') {
 Write-Host ''
 Write-Host '--- 調査結果 ---' -ForegroundColor Cyan
 Write-Host ("  1行目(削除対象) : {0}" -f $firstLine)
@@ -182,44 +231,44 @@ for ($j = 0; $j -lt $Patterns.Count; $j++) {
 }
 Write-Host '    (1行が複数パターンに当たることがあるため、合計は削除数と一致しません)'
 
-if ($Mode -eq 'check') {
     Write-Host ''
     Write-Host " 調査のみ完了。ファイルは作成していません。" -ForegroundColor Green
     Write-Host " 上の ★ が付いた項目を確認してから変換してください。"
     exit 0
 }
 
-# ---- 出力 ----
-$dir  = Split-Path -Parent $Path
-$base = [System.IO.Path]::GetFileNameWithoutExtension($Path)
-$outPath = Join-Path $dir "$base`_converted.txt"
-$oldPath = Join-Path $dir "$base`_old_candidates.txt"
+# ---- 出力（指摘6・7・8）----
+# 出力先は常にツールの output\ 配下。ファイル名にタイムスタンプを付けて上書きを防ぐ
+if (-not (Test-Path -LiteralPath $OutDir)) {
+    New-Item -ItemType Directory -Path $OutDir -Force | Out-Null
+}
+$base    = [System.IO.Path]::GetFileNameWithoutExtension($Path)
+$outPath = Join-Path $OutDir ("{0}_変換後_{1}.txt"   -f $base, $Stamp)
+$logPath = Join-Path $OutDir ("{0}_変更ログ_{1}.txt" -f $base, $Stamp)
 
 $oenc = Get-Enc $OutCharset
 [System.IO.File]::WriteAllBytes($outPath, $oenc.GetBytes(($out -join "`r`n") + "`r`n"))
-if ($oldBuf.Count -gt 0) {
-    [System.IO.File]::WriteAllBytes($oldPath, $oenc.GetBytes(($oldBuf -join "`r`n") + "`r`n"))
-}
+
+# 変更ログ：削除した行を全部、どのパターンで消えたかを付けて出力
+$logHead = @(
+    "変更ログ  $(Get-Date -Format 'yyyy/MM/dd HH:mm:ss')",
+    "入力 : $Path",
+    "読込 $total 行 / 削除 $($delBuf.Count) 行 / 出力 $($out.Count) 行",
+    "",
+    "行頭の [ ] は、その行を削除した削除パターン。",
+    "タブ変換・行末スペース削除は全行に掛かる処理のため記録していません。",
+    "------------------------------------------------------------"
+)
+[System.IO.File]::WriteAllBytes($logPath, $oenc.GetBytes((($logHead + $delBuf) -join "`r`n") + "`r`n"))
 
 Write-Host ''
 Write-Host '--- 変換完了 ---' -ForegroundColor Cyan
 Write-Host ("  読込 {0} 行 / 削除 {1} 行 / 出力 {2} 行" -f $total, $deleted, $out.Count)
 if ($kept -gt 0) {
-    Write-Host ("  例外で保護 {0} 行（削除パターンに当たったが KeepPatterns にあるため残した）" -f $kept) -ForegroundColor Cyan
+    Write-Host ("  例外で保護 {0} 行" -f $kept) -ForegroundColor Cyan
 }
-Write-Host ("  出力 : {0}" -f $outPath) -ForegroundColor Green
-if ($oldBuf.Count -gt 0) {
-    Write-Host ''
-    if ($KeepOld) {
-        Write-Host ("  ★ old のみに該当した {0} 行は【削除していません】。記録先:" -f $oldBuf.Count) -ForegroundColor Yellow
-        Write-Host ("    {0}" -f $oldPath) -ForegroundColor Yellow
-        Write-Host '    本当に削除してよいか確認のうえ、-KeepOld を外して再実行してください。'
-    } else {
-        Write-Host ("  old のみに該当した {0} 行を削除しました。記録先:" -f $oldBuf.Count)
-        Write-Host ("    {0}" -f $oldPath)
-        Write-Host '    誤爆（folder / holder など）が心配な場合は -KeepOld を付けると削除しません。'
-    }
-}
+Write-Host ("  変換後   : {0}" -f $outPath) -ForegroundColor Green
+Write-Host ("  変更ログ : {0}" -f $logPath) -ForegroundColor Green
 Write-Host ''
 Write-Host ' 結果 : OK' -ForegroundColor Green
 exit 0
