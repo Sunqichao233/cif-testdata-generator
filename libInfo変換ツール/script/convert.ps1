@@ -19,7 +19,8 @@ param(
     #            正解ファイルと1バイトも違わない状態にしたい場合はこちら。
     #   all    = 全部削除（RTrim）。データはきれいになるが、
     #            手作業の結果とは全行で差分が出る。
-    [ValidateSet('manual','all')][string] $TailSpace = 'manual'
+    #   none   = 何もしない。手順書(8)を適用しない
+    [ValidateSet('manual','all','none')][string] $TailSpace = 'manual'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -76,10 +77,11 @@ function Convert-Line {
     $s = $s -replace '   ', "`t"                    # (1) 半角スペース3つ → タブ
     if ($TailSpace -eq 'all') {
         $s = $s.TrimEnd(' ')                        # (8) 全部削除（スペースのみ。タブは消さない）
-    } else {
+    } elseif ($TailSpace -eq 'manual') {
         # (8) 1個だけ削除 … サクラエディタの すべて置換 の実際の挙動を再現
         if ($s.EndsWith(' ')) { $s = $s.Substring(0, $s.Length - 1) }
     }
+    # none … 何もしない
     return $s
 }
 
@@ -142,7 +144,12 @@ Write-Host '==================================================================' 
 Write-Host "  入力         : $Path"
 Write-Host "  文字コード   : 入力 $InCharset / 出力 $OutCharset"
 Write-Host "  モード       : $Mode"
-Write-Host ("  行末スペース : {0}" -f $(if ($TailSpace -eq 'all') { 'all（全部削除）' } else { 'manual（1個だけ削除。正解ファイルと一致）' }))
+$tsLabel = switch ($TailSpace) {
+    'all'    { 'all（全部削除）' }
+    'none'   { 'none（何もしない）' }
+    default  { 'manual（1個だけ削除）' }
+}
+Write-Host ("  行末スペース : {0}" -f $tsLabel)
 
 # ---- 1行ずつ処理 ----
 $hit      = New-Object 'int[]' $Patterns.Count
@@ -151,6 +158,7 @@ $delBuf   = New-Object 'System.Collections.Generic.List[string]'   # 指摘4(b)�
 $colCount = @{}
 $total = 0; $blank = 0; $deleted = 0; $kept = 0
 $sp4 = 0; $tailSpaceLines = 0; $maxTail = 0; $folderCnt = 0; $tailTab = 0
+$tailDist = @{}     # 行末スペースが何個の行が何行あるか
 $firstLine = if ($lines.Count -gt 0) { $lines[0] } else { '' }
 
 for ($i = 1; $i -lt $lines.Count; $i++) {     # 1 から開始 = 1行目を読み飛ばす
@@ -162,6 +170,7 @@ for ($i = 1; $i -lt $lines.Count; $i++) {     # 1 から開始 = 1行目を読�
     if ($s.Contains('    '))                                   { $sp4++ }
     $n = $s.Length - $s.TrimEnd(' ').Length
     if ($n -gt 0) { $tailSpaceLines++; if ($n -gt $maxTail) { $maxTail = $n } }
+    if ($tailDist.ContainsKey($n)) { $tailDist[$n]++ } else { $tailDist[$n] = 1 }
     if ($s.IndexOf('folder', [StringComparison]::OrdinalIgnoreCase) -ge 0) { $folderCnt++ }
 
     # --- 削除判定 ---
@@ -214,6 +223,11 @@ function Show-Chk {
 }
 Show-Chk '半角スペース4個以上を含む行'  $sp4       '6個あるとタブ2個になり、列がずれる'
 Show-Chk '行末にスペースがある行'        $tailSpaceLines "最大 $maxTail 個"
+# 何個の行が何行あるかを出す。正解ファイルと合わない時の切り分けに使う
+Write-Host '    行末スペースの個数の内訳:'
+foreach ($k in ($tailDist.Keys | Sort-Object)) {
+    Write-Host ("      {0} 個 : {1} 行" -f $k, $tailDist[$k])
+}
 Show-Chk '変換後に行末がタブになる行'    $tailTab   '表に貼ると空列が1つ増える'
 Show-Chk "'folder' を含む行"             $folderCnt "old の部分一致で巻き添え削除される"
 
