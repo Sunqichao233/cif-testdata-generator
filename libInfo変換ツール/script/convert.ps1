@@ -21,12 +21,12 @@ param(
     #            手作業の結果とは全行で差分が出る。
     #   none   = 何もしない。手順書(8)を適用しない
     #
-    #   ★既定を none にしている理由
+    #   ★既定は manual（手順書(8)どおり）
     #     実データの行末スペースは1個で、手作業の正解ファイルにも1個残っている。
-    #     manual（手順書(8)どおり1個削除）にすると全行で1文字ずれて不一致になる。
-    #     正解ファイルと1バイトも違わない状態にするため none を既定にした。
-    #     手順書(8)を適用する運用に変えるときは manual に戻す。
-    [ValidateSet('manual','all','none')][string] $TailSpace = 'none'
+    #     そのため manual にすると、正解ファイルとは全行で行末スペース1個分の差分が出る。
+    #     正解ファイル作成時に手順書(8)が実施されていないためと思われる。
+    #     正解ファイルに合わせたい場合は none にする。
+    [ValidateSet('manual','all','none')][string] $TailSpace = 'manual'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -62,13 +62,16 @@ $OldIndex = $Patterns.IndexOf('old')
 $KeepPatterns = @(
     # 削除パターンに当たっても削除しない行のキーワード（部分一致・大小文字区別なし）
     #
-    # ★手作業の正解ファイルと一致させるために登録している。
-    #   正解ファイルには下記2行が残っているため、削除すると全体が一致しなくなる。
+    # レビュー指摘4「keepParamにある AfterRcv_org.bat は削除OK」の確認が取れたため、
+    # 登録はゼロにしている。下記2行は org. に当たり、削除される。
     #     \common\batches\CIF_AfterRcv_org.bat
     #     \common\batches\USERFILE_AfterRcv_org.bat
-    #   ただしレビュー指摘4では「AfterRcv_org.bat は削除OK」とされている。
-    #   指摘どおりにする場合は、この1行を削除（またはコメントアウト）する。
-    'AfterRcv_org.bat'
+    # 手作業の正解ファイルには残っているため、突き合わせでは2行の差分として出る。
+    # これは正解ファイル側の消し忘れであり、正しい差分。
+    #
+    # 削除してはいけない TextNormalize_ORG1.xml のような ORG 付きファイルは、
+    # org. が「org」＋ピリオドの一致であるため、そもそも削除対象にならない。
+    # 仕組みは残してあるので、保護が必要になったらここにキーワードを書く。
 )
 
 function Get-Enc {
@@ -164,6 +167,7 @@ Write-Host ("  行末スペース : {0}" -f $tsLabel)
 
 # ---- 1行ずつ処理 ----
 $hit      = New-Object 'int[]' $Patterns.Count
+$hitKept  = New-Object 'int[]' $Patterns.Count   # 当たったが例外で保護した行数
 $out      = New-Object 'System.Collections.Generic.List[string]'
 $delBuf   = New-Object 'System.Collections.Generic.List[string]'   # 指摘4(b)・7: 削除した行を全部ここに
 $colCount = @{}
@@ -204,7 +208,14 @@ for ($i = 1; $i -lt $lines.Count; $i++) {     # 1 から開始 = 1行目を読�
     # 既定は手順書どおり削除。誤爆が心配な場合は -KeepOld を付けると削除しない。
     if ($onlyOld -and (-not $KeepOld)) { $killed = $true }
 
-    if ($protected) { $killed = $false; $kept++ }
+    if ($protected) {
+        $killed = $false
+        if ($matched.Count -gt 0) {
+            $kept++
+            # どのパターンに当たったのに残したのかを記録する
+            foreach ($m in $matched) { $hitKept[$Patterns.IndexOf($m)]++ }
+        }
+    }
     if ($killed) {
         $deleted++
         # 削除した行はすべて変更ログへ。行頭にどのパターンで消えたかを付ける
@@ -249,12 +260,24 @@ foreach ($k in ($colCount.Keys | Sort-Object)) {
 }
 
 Write-Host ''
-Write-Host '  削除パターン別の該当行数:'
+Write-Host '  削除パターン別の該当行数（当たった行数。削除数とは別）:'
 for ($j = 0; $j -lt $Patterns.Count; $j++) {
-    $note = if ($j -eq $OldIndex) { if ($KeepOld) { '   ※削除せず別ファイルへ' } else { '   ※削除。記録も残す' } } else { '' }
+    $note = ''
+    if ($hitKept[$j] -gt 0) {
+        # 当たったのに残した行がある場合は必ず書く。削除済みと誤解されないように
+        $note = "   ※うち {0} 行は例外リストで保護（削除しない）" -f $hitKept[$j]
+    } elseif ($j -eq $OldIndex -and $KeepOld) {
+        $note = '   ※削除せず別ファイルへ'
+    }
     Write-Host ("    {0,-38} {1}{2}" -f $Patterns[$j], $hit[$j], $note)
 }
 Write-Host '    (1行が複数パターンに当たることがあるため、合計は削除数と一致しません)'
+Write-Host ''
+Write-Host ("  実際に削除する行数 : {0} 行" -f $deleted) -ForegroundColor Cyan
+if ($kept -gt 0) {
+    Write-Host ("  例外で保護する行数 : {0} 行（上の ※ の行）" -f $kept) -ForegroundColor Cyan
+}
+Write-Host ("  出力される行数     : {0} 行" -f $out.Count) -ForegroundColor Cyan
 
     Write-Host ''
     Write-Host " 調査のみ完了。ファイルは作成していません。" -ForegroundColor Green
