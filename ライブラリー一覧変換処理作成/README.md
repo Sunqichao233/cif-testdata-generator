@@ -8,7 +8,7 @@
 
 - 只被 `old` 命中的行**默认删除**，同时留档到 `_old_candidates.txt`；想先不删就加 `-KeepOld`
 - 改输出编码、删除关键词 → 改 `convert.ps1` 开头的参数和 `$Patterns`
-- 和手工做的 `_変換後.txt` 对账 → 跑 **`compare.ps1`**（对应「步骤」⑦ 結果検証）
+- 和手工做的 `_変換後.txt` 对账 → 双击 **`compare.bat`**（对应「步骤」⑦ 結果検証）
 - 试跑用 `test\libInfo.txt`；`LibInfoConv.bas` 是 Excel 宏版，用不到可以删
 
 ## 脚本之间的关系
@@ -22,7 +22,7 @@ run.bat
   │
   └─② convert.ps1 -Mode convert   真正变换，写出 txt
 
-compare.ps1                        run.bat 不调用它，需要时自己跑
+compare.bat ─> compare.ps1         run.bat 不调用它，需要时自己双击
 ```
 
 - **`run.bat`** 只是个壳：找 PowerShell、传文件路径、中间插一个 Y/N 确认。没有任何处理逻辑

@@ -20,9 +20,17 @@ $enc = if ($Charset -match 'utf') { New-Object System.Text.UTF8Encoding($false) 
 # ---- 自动找文件 ----
 function Find-One {
     param([string]$Pattern, [string]$What)
-    $f = @(Get-ChildItem -LiteralPath $PSScriptRoot -Filter $Pattern -File |
-           Sort-Object Length -Descending)
-    if ($f.Count -eq 0) { throw "没找到$What（$Pattern）。请用参数指定。" }
+    # -Filter 对日文文件名有时不可靠，所以先全取再用 -like 过滤
+    # 同名多个时取最新的一个
+    $f = @(Get-ChildItem -LiteralPath $PSScriptRoot -File |
+           Where-Object { $_.Name -like $Pattern } |
+           Sort-Object LastWriteTime -Descending)
+    if ($f.Count -eq 0) {
+        throw "没找到$What（文件名要像 $Pattern）。请用参数直接指定路径。"
+    }
+    if ($f.Count -gt 1) {
+        Write-Host ("  [注意] 有 {0} 个候选，取最新的: {1}" -f $f.Count, $f[0].Name) -ForegroundColor Yellow
+    }
     return $f[0].FullName
 }
 if (-not $Mine) { $Mine = Find-One '*_converted.txt' '脚本的输出' }
