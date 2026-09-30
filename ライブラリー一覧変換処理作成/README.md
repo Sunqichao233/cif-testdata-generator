@@ -8,6 +8,8 @@
 
 - 只被 `old` 命中的行**默认删除**，同时留档到 `_old_candidates.txt`；想先不删就加 `-KeepOld`
 - 改输出编码、删除关键词 → 改 `convert.ps1` 开头的参数和 `$Patterns`
+- 行末空格：默认 `-TailSpace manual`（只删1个，**与手工正解逐字节一致**）；`all` = 全删，数据更干净但和正解每行都有差
+- 命中删除模式但不该删的行（如 `〜ORGXX 対象外`）→ 写进 `convert.ps1` 的 `$KeepPatterns`
 - 和手工做的 `_変換後.txt` 对账 → 双击 **`compare.bat`**（对应「步骤」⑦ 結果検証）
 - 试跑用 `test\libInfo.txt`；`LibInfoConv.bas` 是 Excel 宏版，用不到可以删
 

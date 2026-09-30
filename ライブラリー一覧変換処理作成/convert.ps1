@@ -10,7 +10,14 @@ param(
     [ValidateSet('check','convert')][string] $Mode = 'check',
     [string] $InCharset  = 'shift_jis',   # 输入编码。手順書要求 SJIS
     [string] $OutCharset = 'shift_jis',   # 输出编码。※未确认，要 UTF-8 就改这里
-    [switch] $KeepOld                     # 加上这个开关，"old" 命中的行先不删（留着人工确认）
+    [switch] $KeepOld,                    # 加上这个开关，"old" 命中的行先不删（留着人工确认）
+
+    # 行末空格的处理方式（手順書(8)）
+    #   manual = 只删 1 个，复现手工结果。手順書的「置換の繰返し」没勾，
+    #            サクラの すべて置換 一次只删 1 个，所以正解每行末尾还剩 1 个空格。
+    #            要和手工正解逐字节一致就用这个。
+    #   all    = 全删（RTrim）。数据更干净，但和手工正解每行都会有差异。
+    [ValidateSet('manual','all')][string] $TailSpace = 'manual'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -54,9 +61,18 @@ function Get-Enc {
     }
 }
 
-# 一行的变换：(1) 3个空格->Tab、(8) 删行末空格
-# 顺序照手順書。TrimEnd(' ') 只删空格不删 Tab，和 VBA 的 RTrim 一致。
-function Convert-Line { param([string]$s) ($s -replace '   ', "`t").TrimEnd(' ') }
+# 一行的变换：(1) 3个空格->Tab、(8) 处理行末空格。顺序照手順書。
+function Convert-Line {
+    param([string]$s)
+    $s = $s -replace '   ', "`t"                    # (1) 3个空格 -> Tab
+    if ($TailSpace -eq 'all') {
+        $s = $s.TrimEnd(' ')                        # (8) 全删（只删空格，不删 Tab）
+    } else {
+        # (8) 只删 1 个 —— 复现サクラの すべて置換 的实际行为
+        if ($s.EndsWith(' ')) { $s = $s.Substring(0, $s.Length - 1) }
+    }
+    return $s
+}
 
 # ---- 找输入文件 ----
 if (-not $Path) {
@@ -77,6 +93,7 @@ Write-Host '==================================================================' 
 Write-Host "  输入   : $Path"
 Write-Host "  编码   : 输入 $InCharset / 输出 $OutCharset"
 Write-Host "  模式   : $Mode"
+Write-Host ("  行末空格: {0}" -f $(if ($TailSpace -eq 'all') { 'all（全删）' } else { 'manual（只删1个，与手工正解一致）' }))
 
 # ---- 逐行处理 ----
 $hit      = New-Object 'int[]' $Patterns.Count
@@ -84,7 +101,7 @@ $out      = New-Object 'System.Collections.Generic.List[string]'
 $oldBuf   = New-Object 'System.Collections.Generic.List[string]'
 $colCount = @{}
 $total = 0; $blank = 0; $deleted = 0; $kept = 0
-$sp4 = 0; $tailSpace = 0; $maxTail = 0; $folderCnt = 0; $tailTab = 0
+$sp4 = 0; $tailSpaceLines = 0; $maxTail = 0; $folderCnt = 0; $tailTab = 0
 $firstLine = if ($lines.Count -gt 0) { $lines[0] } else { '' }
 
 for ($i = 1; $i -lt $lines.Count; $i++) {     # 从 1 开始 = 跳过第 1 行
@@ -95,7 +112,7 @@ for ($i = 1; $i -lt $lines.Count; $i++) {     # 从 1 开始 = 跳过第 1 行
     # --- 调查用的计数 ---
     if ($s.Contains('    '))                                   { $sp4++ }
     $n = $s.Length - $s.TrimEnd(' ').Length
-    if ($n -gt 0) { $tailSpace++; if ($n -gt $maxTail) { $maxTail = $n } }
+    if ($n -gt 0) { $tailSpaceLines++; if ($n -gt $maxTail) { $maxTail = $n } }
     if ($s.IndexOf('folder', [StringComparison]::OrdinalIgnoreCase) -ge 0) { $folderCnt++ }
 
     # --- 删除判定 ---
@@ -142,7 +159,7 @@ function Show-Chk {
     else            { Write-Host ("  {0,-30}: {1}   ★{2}" -f $Label, $Val, $Warn) -ForegroundColor Yellow }
 }
 Show-Chk '含4个以上连续空格的行'  $sp4       '6个空格会变成2个Tab，列会错位'
-Show-Chk '行末有空格的行'          $tailSpace "最多 $maxTail 个"
+Show-Chk '行末有空格的行'          $tailSpaceLines "最多 $maxTail 个"
 Show-Chk '变换后行末是Tab的行'     $tailTab   '贴进表格会多一个空列'
 Show-Chk "含 folder 的行"          $folderCnt 'old 会把这些一起删掉'
 
