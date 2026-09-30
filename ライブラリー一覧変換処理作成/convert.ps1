@@ -34,6 +34,15 @@ $Patterns = @(
 )
 $OldIndex = $Patterns.IndexOf('old')
 
+# ---- 例外列表：命中删除模式也不删的行 ----
+# 手順書备注「←PKG標準資材の"〜ORGXX"は対象外」说的就是这种情况：
+# 有些带 org 的文件是正规资材，不能删。
+# 在这里写上关键词（不区分大小写的部分一致），命中的行就会被保护下来。
+$KeepPatterns = @(
+    # 和手工正解对账时发现的（确认规则后再取消注释启用）:
+    # 'AfterRcv_org.bat'
+)
+
 function Get-Enc {
     param([string]$Name)
     switch ($Name.ToLower()) {
@@ -74,7 +83,7 @@ $hit      = New-Object 'int[]' $Patterns.Count
 $out      = New-Object 'System.Collections.Generic.List[string]'
 $oldBuf   = New-Object 'System.Collections.Generic.List[string]'
 $colCount = @{}
-$total = 0; $blank = 0; $deleted = 0
+$total = 0; $blank = 0; $deleted = 0; $kept = 0
 $sp4 = 0; $tailSpace = 0; $maxTail = 0; $folderCnt = 0; $tailTab = 0
 $firstLine = if ($lines.Count -gt 0) { $lines[0] } else { '' }
 
@@ -90,6 +99,12 @@ for ($i = 1; $i -lt $lines.Count; $i++) {     # 从 1 开始 = 跳过第 1 行
     if ($s.IndexOf('folder', [StringComparison]::OrdinalIgnoreCase) -ge 0) { $folderCnt++ }
 
     # --- 删除判定 ---
+    # 先看例外：在例外列表里的行，不管命中什么模式都保留
+    $protected = $false
+    foreach ($kp in $KeepPatterns) {
+        if ($s.IndexOf($kp, [StringComparison]::OrdinalIgnoreCase) -ge 0) { $protected = $true; break }
+    }
+
     $killed = $false; $onlyOld = $false
     for ($j = 0; $j -lt $Patterns.Count; $j++) {
         if ($s.IndexOf($Patterns[$j], [StringComparison]::OrdinalIgnoreCase) -ge 0) {
@@ -105,6 +120,7 @@ for ($i = 1; $i -lt $lines.Count; $i++) {     # 从 1 开始 = 跳过第 1 行
         if (-not $KeepOld) { $killed = $true }
     }
 
+    if ($protected) { $killed = $false; $kept++ }
     if ($killed) { $deleted++; continue }
 
     $conv = Convert-Line $s
@@ -166,6 +182,9 @@ if ($oldBuf.Count -gt 0) {
 Write-Host ''
 Write-Host '--- 变换完成 ---' -ForegroundColor Cyan
 Write-Host ("  读入 {0} 行 / 删除 {1} 行 / 输出 {2} 行" -f $total, $deleted, $out.Count)
+if ($kept -gt 0) {
+    Write-Host ("  例外保护 {0} 行（命中了删除模式，但在 KeepPatterns 里）" -f $kept) -ForegroundColor Cyan
+}
 Write-Host ("  输出 : {0}" -f $outPath) -ForegroundColor Green
 if ($oldBuf.Count -gt 0) {
     Write-Host ''

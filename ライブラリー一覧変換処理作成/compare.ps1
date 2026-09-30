@@ -124,7 +124,42 @@ function Show-Sample {
 }
 Show-Sample '脚本多出来的行（内容差异）' $onlyA_real 'Red'
 Show-Sample '脚本缺少的行（内容差异）'   $onlyB_real 'Red'
-Show-Sample '只有空白不同的行（脚本侧）' @($onlyA | Where-Object { $normB.Contains((Norm $_)) }) 'Yellow'
+
+# ---- 空白差异：把两边同一行并排显示，空白显形 ----
+#   Tab -> [>]   半角空格 -> .   这样一眼能看出差在哪
+$wsLines = @($onlyA | Where-Object { $normB.Contains((Norm $_)) })
+if ($wsLines.Count -gt 0) {
+    # 正解侧按「忽略空白后的形态」建索引，用来找出对应的那一行
+    $refByNorm = @{}
+    foreach ($l in $B) {
+        $k = Norm $l
+        if (-not $refByNorm.ContainsKey($k)) { $refByNorm[$k] = $l }
+    }
+    function Vis { param([string]$s) ($s -replace "`t", '[>]') -replace ' ', '.' }
+
+    Write-Host ''
+    Write-Host ("--- 空白差异的详细（前 {0} 组。Tab=[>] 空格=. ）---" -f `
+                [Math]::Min(3, $wsLines.Count)) -ForegroundColor Yellow
+    $wsLines | Select-Object -First 3 | ForEach-Object {
+        $mine = $_
+        $ref  = $refByNorm[(Norm $mine)]
+        Write-Host ''
+        Write-Host ('  脚本 : ' + (Vis $mine))
+        Write-Host ('  正解 : ' + (Vis $ref))
+        # 找第一个不一样的位置，直接指出来
+        $n = [Math]::Min($mine.Length, $ref.Length)
+        $d = -1
+        for ($k = 0; $k -lt $n; $k++) {
+            if ($mine[$k] -ne $ref[$k]) { $d = $k; break }
+        }
+        if ($d -lt 0 -and $mine.Length -ne $ref.Length) { $d = $n }
+        if ($d -ge 0) {
+            $mc = if ($d -lt $mine.Length) { Vis ([string]$mine[$d]) } else { '(行尾)' }
+            $rc = if ($d -lt $ref.Length)  { Vis ([string]$ref[$d])  } else { '(行尾)' }
+            Write-Host ("         第 {0} 个字符开始不同： 脚本={1}  正解={2}" -f ($d+1), $mc, $rc) -ForegroundColor Cyan
+        }
+    }
+}
 
 # ---- 结论 ----
 Write-Host ''
