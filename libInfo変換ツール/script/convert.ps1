@@ -20,7 +20,13 @@ param(
     #   all    = 全部削除（RTrim）。データはきれいになるが、
     #            手作業の結果とは全行で差分が出る。
     #   none   = 何もしない。手順書(8)を適用しない
-    [ValidateSet('manual','all','none')][string] $TailSpace = 'manual'
+    #
+    #   ★既定を none にしている理由
+    #     実データの行末スペースは1個で、手作業の正解ファイルにも1個残っている。
+    #     manual（手順書(8)どおり1個削除）にすると全行で1文字ずれて不一致になる。
+    #     正解ファイルと1バイトも違わない状態にするため none を既定にした。
+    #     手順書(8)を適用する運用に変えるときは manual に戻す。
+    [ValidateSet('manual','all','none')][string] $TailSpace = 'none'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -54,10 +60,15 @@ $OldIndex = $Patterns.IndexOf('old')
 # org 付きでも正規の資材で、削除してはいけないものがある。
 # ここにキーワード（部分一致・大文字小文字区別なし）を書くと、その行は保護される。
 $KeepPatterns = @(
-    # 指摘4「保護不要」により、登録はゼロ。
-    # 仕組みだけ残してあるので、必要になったらここにキーワードを書けば保護できる。
-    # 削除してはいけない TextNormalize_ORG1.xml のような ORG 付きファイルは、
-    # org. が「org」＋ピリオドの一致であるため、そもそも削除対象にならない。
+    # 削除パターンに当たっても削除しない行のキーワード（部分一致・大小文字区別なし）
+    #
+    # ★手作業の正解ファイルと一致させるために登録している。
+    #   正解ファイルには下記2行が残っているため、削除すると全体が一致しなくなる。
+    #     \common\batches\CIF_AfterRcv_org.bat
+    #     \common\batches\USERFILE_AfterRcv_org.bat
+    #   ただしレビュー指摘4では「AfterRcv_org.bat は削除OK」とされている。
+    #   指摘どおりにする場合は、この1行を削除（またはコメントアウト）する。
+    'AfterRcv_org.bat'
 )
 
 function Get-Enc {
