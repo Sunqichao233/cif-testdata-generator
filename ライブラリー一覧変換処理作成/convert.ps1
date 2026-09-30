@@ -10,7 +10,7 @@ param(
     [ValidateSet('check','convert')][string] $Mode = 'check',
     [string] $InCharset  = 'shift_jis',   # 输入编码。手順書要求 SJIS
     [string] $OutCharset = 'shift_jis',   # 输出编码。※未确认，要 UTF-8 就改这里
-    [switch] $NoSafeOld                   # 加上这个开关，"old" 命中的行也真删
+    [switch] $KeepOld                     # 加上这个开关，"old" 命中的行先不删（留着人工确认）
 )
 
 $ErrorActionPreference = 'Stop'
@@ -97,11 +97,12 @@ for ($i = 1; $i -lt $lines.Count; $i++) {     # 从 1 开始 = 跳过第 1 行
             if ($j -eq $OldIndex) { $onlyOld = $true } else { $killed = $true }
         }
     }
-    # "old" 是部分一致，folder / holder 也会被命中。
-    # 默认不删，单独写到另一个文件里让人确认。
+    # "old" 是部分一致，folder / holder 之类也会被命中。
+    # 默认照手順書删掉，但同时写到 _old_candidates.txt 留档，事后能查。
+    # 担心误伤时加 -KeepOld，这些行就不删，先人工过目。
     if ($onlyOld) {
         [void]$oldBuf.Add($s)
-        if ($NoSafeOld) { $killed = $true }
+        if (-not $KeepOld) { $killed = $true }
     }
 
     if ($killed) { $deleted++; continue }
@@ -138,7 +139,7 @@ foreach ($k in ($colCount.Keys | Sort-Object)) {
 Write-Host ''
 Write-Host '  各删除模式命中行数:'
 for ($j = 0; $j -lt $Patterns.Count; $j++) {
-    $note = if ($j -eq $OldIndex -and -not $NoSafeOld) { '   ※不删，另存' } else { '' }
+    $note = if ($j -eq $OldIndex) { if ($KeepOld) { '   ※不删，另存' } else { '   ※删除，并留档' } } else { '' }
     Write-Host ("    {0,-38} {1}{2}" -f $Patterns[$j], $hit[$j], $note)
 }
 Write-Host '    (一行可能命中多个模式，合计不等于删除数)'
@@ -168,9 +169,15 @@ Write-Host ("  读入 {0} 行 / 删除 {1} 行 / 输出 {2} 行" -f $total, $del
 Write-Host ("  输出 : {0}" -f $outPath) -ForegroundColor Green
 if ($oldBuf.Count -gt 0) {
     Write-Host ''
-    Write-Host ("  ★ 只被 old 命中的 {0} 行没有删除，写到了：" -f $oldBuf.Count) -ForegroundColor Yellow
-    Write-Host ("    {0}" -f $oldPath) -ForegroundColor Yellow
-    Write-Host '    打开确认这些确实该删之后，用 -NoSafeOld 再跑一次。'
+    if ($KeepOld) {
+        Write-Host ("  ★ 只被 old 命中的 {0} 行【没有删除】，写到了：" -f $oldBuf.Count) -ForegroundColor Yellow
+        Write-Host ("    {0}" -f $oldPath) -ForegroundColor Yellow
+        Write-Host '    确认这些确实该删之后，去掉 -KeepOld 再跑一次。'
+    } else {
+        Write-Host ("  只被 old 命中的 {0} 行已删除。留档在：" -f $oldBuf.Count)
+        Write-Host ("    {0}" -f $oldPath)
+        Write-Host '    担心误伤（folder / holder 之类）时，加 -KeepOld 重跑可以先不删。'
+    }
 }
 Write-Host ''
 Write-Host ' 结果 : OK' -ForegroundColor Green
