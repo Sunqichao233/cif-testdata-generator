@@ -11,6 +11,7 @@
 - 行末空格：默认 `-TailSpace manual`（只删1个，**与手工正解逐字节一致**）；`all` = 全删，数据更干净但和正解每行都有差
 - 命中删除模式但不该删的行（如 `〜ORGXX 対象外`）→ 写进 `convert.ps1` 的 `$KeepPatterns`
 - 和手工做的 `_変換後.txt` 对账 → 双击 **`compare.bat`**（对应「步骤」⑦ 結果検証）
+  画面只是摘要，**全部差异写在 `compare_report.txt`** 里，用编辑器打开看
 - 试跑用 `test\libInfo.txt`；`LibInfoConv.bas` 是 Excel 宏版，用不到可以删
 
 ## 脚本之间的关系
