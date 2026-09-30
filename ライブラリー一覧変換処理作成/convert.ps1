@@ -46,8 +46,11 @@ $OldIndex = $Patterns.IndexOf('old')
 # 有些带 org 的文件是正规资材，不能删。
 # 在这里写上关键词（不区分大小写的部分一致），命中的行就会被保护下来。
 $KeepPatterns = @(
-    # 和手工正解对账时发现的（确认规则后再取消注释启用）:
-    # 'AfterRcv_org.bat'
+    # 和手工正解对账时发现的：这两个是正规批处理，手工版保留了，脚本也要保留
+    #   \common\batches\CIF_AfterRcv_org.bat
+    #   \common\batches\USERFILE_AfterRcv_org.bat
+    # 一条就能盖住两个（部分一致）。命中 org. 也不会被删
+    'AfterRcv_org.bat'
 )
 
 function Get-Enc {
