@@ -54,6 +54,7 @@ $Patterns = @(
     'origin.txt'
 )
 $OldIndex = $Patterns.IndexOf('old')
+$OrgIndex = $Patterns.IndexOf('org.')   # 指摘2: org. だけは該当行を画面に出す
 
 # ---- 例外リスト：削除パターンに当たっても削除しない行 ----
 # 手順書の備考「←PKG標準資材の"〜ORGXX"は対象外」に相当する。
@@ -73,6 +74,33 @@ $KeepPatterns = @(
     # org. が「org」＋ピリオドの一致であるため、そもそも削除対象にならない。
     # 仕組みは残してあるので、保護が必要になったらここにキーワードを書く。
 )
+
+# ---- 画面の桁そろえ ----
+# PowerShell の -f の {0,-34} は「文字数」で詰めるため、全角文字が混ざると桁がそろわない。
+# コマンドプロンプトでは全角1文字＝半角2文字分の幅になるので、
+# 表示幅を数えて半角スペースを足す。
+function Get-DispWidth {
+    param([string]$s)
+    $w = 0
+    foreach ($ch in $s.ToCharArray()) {
+        $c = [int]$ch
+        if ($c -ge 0x1100 -and (
+              $c -le 0x115F -or
+             ($c -ge 0x2E80 -and $c -le 0xA4CF -and $c -ne 0x303F) -or
+             ($c -ge 0xAC00 -and $c -le 0xD7A3) -or
+             ($c -ge 0xF900 -and $c -le 0xFAFF) -or
+             ($c -ge 0xFE30 -and $c -le 0xFE6F) -or
+             ($c -ge 0xFF00 -and $c -le 0xFF60) -or
+             ($c -ge 0xFFE0 -and $c -le 0xFFE6))) { $w += 2 } else { $w += 1 }
+    }
+    return $w
+}
+function Format-Pad {
+    param([string]$Text, [int]$Width)
+    $n = $Width - (Get-DispWidth $Text)
+    if ($n -lt 0) { $n = 0 }
+    return ($Text + (' ' * $n))
+}
 
 function Get-Enc {
     param([string]$Name)
@@ -170,6 +198,10 @@ $hit      = New-Object 'int[]' $Patterns.Count
 $hitKept  = New-Object 'int[]' $Patterns.Count   # 当たったが例外で保護した行数
 $out      = New-Object 'System.Collections.Generic.List[string]'
 $delBuf   = New-Object 'System.Collections.Generic.List[string]'   # 指摘4(b)・7: 削除した行を全部ここに
+# 指摘2: 「org.」に当たった行は本文を画面に出す。
+#        ORG を含むが削除してはいけない行（PKG標準資材の ～ORGXX など）を
+#        巻き込んでいないか、変換前に目視で確認するため。
+$orgBuf   = New-Object 'System.Collections.Generic.List[string]'
 $colCount = @{}
 $total = 0; $blank = 0; $deleted = 0; $kept = 0
 $sp4 = 0; $tailSpaceLines = 0; $maxTail = 0; $folderCnt = 0; $tailTab = 0
@@ -201,6 +233,11 @@ for ($i = 1; $i -lt $lines.Count; $i++) {     # 1 から開始 = 1行目を読�
         if ($s.IndexOf($Patterns[$j], [StringComparison]::OrdinalIgnoreCase) -ge 0) {
             $hit[$j]++
             [void]$matched.Add($Patterns[$j])
+            if ($j -eq $OrgIndex) {
+                # 指摘2: org. の該当行は本文を控えておく
+                $mark = if ($protected) { '[保護・残す] ' } else { '[削除] ' }
+                [void]$orgBuf.Add($mark + $s)
+            }
             if ($j -eq $OldIndex) { $onlyOld = $true } else { $killed = $true }
         }
     }
@@ -235,13 +272,14 @@ for ($i = 1; $i -lt $lines.Count; $i++) {     # 1 から開始 = 1行目を読�
 if ($Mode -eq 'check') {
 Write-Host ''
 Write-Host '--- 調査結果 ---' -ForegroundColor Cyan
-Write-Host ("  1行目(削除対象) : {0}" -f $firstLine)
-Write-Host ("  全行数(1行目除く): {0}   空行: {1}" -f $total, $blank)
+Write-Host ("  {0}: {1}" -f (Format-Pad '1行目(削除対象)'  18), $firstLine)
+Write-Host ("  {0}: {1}   空行: {2}" -f (Format-Pad '全行数(1行目除く)' 18), $total, $blank)
 Write-Host ''
 function Show-Chk {
     param([string]$Label, [int]$Val, [string]$Warn)
-    if ($Val -eq 0) { Write-Host ("  {0,-34}: {1}" -f $Label, $Val) -ForegroundColor Green }
-    else            { Write-Host ("  {0,-34}: {1}   ★{2}" -f $Label, $Val, $Warn) -ForegroundColor Yellow }
+    $L = Format-Pad $Label 34
+    if ($Val -eq 0) { Write-Host ("  {0}: {1}" -f $L, $Val) -ForegroundColor Green }
+    else            { Write-Host ("  {0}: {1}   ★{2}" -f $L, $Val, $Warn) -ForegroundColor Yellow }
 }
 Show-Chk '半角スペース4個以上を含む行'  $sp4       '6個あるとタブ2個になり、列がずれる'
 Show-Chk '行末にスペースがある行'        $tailSpaceLines "最大 $maxTail 個"
@@ -269,7 +307,15 @@ for ($j = 0; $j -lt $Patterns.Count; $j++) {
     } elseif ($j -eq $OldIndex -and $KeepOld) {
         $note = '   ※削除せず別ファイルへ'
     }
-    Write-Host ("    {0,-38} {1}{2}" -f $Patterns[$j], $hit[$j], $note)
+    Write-Host ("    {0} {1,4}{2}" -f (Format-Pad $Patterns[$j] 38), $hit[$j], $note)
+
+    # 指摘2: org. は該当行の本文も出す。
+    # ORG を含むが削除してはいけない行を巻き込んでいないか、ここで目視確認する。
+    if ($j -eq $OrgIndex -and $orgBuf.Count -gt 0) {
+        foreach ($line in $orgBuf) {
+            Write-Host ('      ' + $line) -ForegroundColor Yellow
+        }
+    }
 }
 Write-Host '    (1行が複数パターンに当たることがあるため、合計は削除数と一致しません)'
 Write-Host ''
