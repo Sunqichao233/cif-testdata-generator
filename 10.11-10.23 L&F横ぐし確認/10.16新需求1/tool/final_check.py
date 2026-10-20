@@ -30,7 +30,7 @@ for sec in secs:
     ins = [x for x in sec['stmts'] if x['kind'] in ('VALUES', 'SELECT')]
     other = [x for x in sec['stmts'] if x['kind'] not in ('VALUES', 'SELECT')]
     ws = wb[name]
-    rows = [r for r in range(3, ws.max_row + 1) if ws.cell(row=r, column=1).value]
+    rows = [r for r in range(4, ws.max_row + 1) if ws.cell(row=r, column=1).value]
     di = read_def(wbd[name])
     ok = (len(ins) == len(rows))
     tot_sql += len(ins); tot_xls += len(rows)
@@ -43,10 +43,10 @@ for sec in secs:
     # ②の値・②のSQL が定義書のセルと一致するか
     hdr = {}
     for c in range(1, ws.max_column + 1):
-        hdr.setdefault(str(ws.cell(row=2, column=c).value or ''), []).append(c)
+        hdr.setdefault(str(ws.cell(row=3, column=c).value or ''), []).append(c)
     dcols = []
     for c in range(1, ws.max_column + 1):
-        if str(ws.cell(row=1, column=c).value or '') == '横浜銀行様用出荷設定':
+        if str(ws.cell(row=2, column=c).value or '') == '横浜銀行様用出荷設定':
             dcols = list(range(c, c + len(di['names'])))
     dmis = 0
     # Excel に出ている②の値が、定義書のどこかの行にそのまま存在するか

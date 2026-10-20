@@ -105,7 +105,7 @@ def cell(ws, ref, depth):
 
 
 def val(ws, a, depth=0):
-    v = ws[a].value
+    v = ws[a.replace('$', '')].value
     if v is None:
         return ''
     if isinstance(v, str) and v.startswith('=') and depth < 10:
@@ -127,11 +127,16 @@ tot = {}
 bad = []
 for n in wb.sheetnames:
     ws = wb[n]
-    cols = [c for c in range(1, ws.max_column + 1)
-            if str(ws.cell(row=2, column=c).value or '') == '一致']
-    for idx, col in enumerate(cols):
-        key = str(ws.cell(row=1, column=col).value or ('一致%d' % idx))
-        for r in range(3, ws.max_row + 1):
+    hdr = {}
+    for c in range(1, ws.max_column + 1):
+        v = str(ws.cell(row=3, column=c).value or '')
+        if v:
+            hdr.setdefault(v, c)
+    cAll, cSql, cWhy = hdr.get('全項目一致'), hdr.get('SQL文一致'), hdr.get('相違した項目')
+    for key, col in (('①②（項目）', cAll), ('①③（SQL文）', cSql)):
+        if not col:
+            continue
+        for r in range(4, ws.max_row + 1):
             f = ws.cell(row=r, column=col).value
             if not (isinstance(f, str) and f.startswith('=')):
                 continue
@@ -140,15 +145,18 @@ for n in wb.sheetnames:
             tot.setdefault(key, [0, 0])
             tot[key][0 if res else 1] += 1
             if not res:
-                bad.append((n, r, key))
+                why = ''
+                if cWhy and key.startswith('①②'):
+                    why = str(ev(ws, ws.cell(row=r, column=cWhy).value) or '')
+                bad.append((n, r, key, why))
 
 print('=== 評価結果 ===')
 for k, (t, f) in tot.items():
     print('  %-12s TRUE %5d / FALSE %4d' % (k, t, f))
 print()
 seen = {}
-for n, r, k in bad:
-    seen.setdefault((n, k), []).append(r)
+for n, r, k, why in bad:
+    seen.setdefault((n, k, why), []).append(r)
 print('FALSE になった行')
-for (n, k), rs in seen.items():
-    print('  %-26s %-10s %3d件  行%s' % (n, k, len(rs), rs[:8]))
+for (n, k, why), rs in seen.items():
+    print('  %-26s %-12s %3d件  行%-26s %s' % (n, k, len(rs), str(rs[:6]), why))

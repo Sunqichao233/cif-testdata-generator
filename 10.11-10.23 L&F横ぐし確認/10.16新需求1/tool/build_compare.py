@@ -225,11 +225,16 @@ def put2(ws, r, c, v, fill=None, bold=False, wrap=False, align=None, red=False):
     return cell
 
 
-def head2(ws, c1, hd, c_blk, c_col, label):
-    """定義書と同じ2段見出し（1行目＝ブロック名／2行目＝列名）。"""
-    block_label(ws, 1, c1, c1 + len(hd) - 1, label, c_blk)
+def head2(ws, c1, hd, c_blk, c_col, label, blk_row=2, hdr_row=3):
+    """定義書と同じ2段見出し（ブロック名／列名）。"""
+    block_label(ws, blk_row, c1, c1 + len(hd) - 1, label, c_blk)
     for i, h in enumerate(hd):
-        put2(ws, 2, c1 + i, h, fill=c_col, bold=True, align='center', wrap=True)
+        put2(ws, hdr_row, c1 + i, h, fill=c_col, bold=True, align='center', wrap=True)
+
+
+def top_label(ws, c1, c2, text, fill):
+    """最上段の大区分（資材SQL／マスタ定義書 など）。"""
+    block_label(ws, 1, c1, c2, text, fill)
 
 
 def naive_index(args):
@@ -240,6 +245,22 @@ def naive_index(args):
         out.append(k)
         k += tok.count(',') + 1
     return out
+
+
+def field_cmp_formula(kind, ncell, dcell):
+    """1項目分の比較式。②の値を SQL の書き方に戻してから ① と比べる。"""
+    if kind == '日時':
+        return '=EXACT(TRIM(%s),"to_timestamp(%s"&%s&"%s")' % (ncell, Q, dcell, Q)
+    if kind in ('文字列', '空'):
+        return '=EXACT(TRIM(%s),"%s"&%s&"%s")' % (ncell, Q, dcell, Q)
+    return '=EXACT(TRIM(%s),%s&"")' % (ncell, dcell)
+
+
+def diff_name_formula(c0, m, r, hdr_row):
+    """FALSE だった項目の名前を並べる式。すべて一致なら空欄。"""
+    parts = ['IF(%s%d,"",$%s$%d&" ")' % (CL(c0 + j), r, CL(c0 + j), hdr_row)
+             for j in range(m)]
+    return '=TRIM(' + '&'.join(parts) + ')'
 
 
 def value_cmp_formula(types, ni, cS0, cD0, r):
@@ -276,17 +297,20 @@ def build_sheet(wb, sec, dinfo, extra):
     is_sel = any(s['kind'] == 'SELECT' for s in ins)
     split_hd = (['挿入先テーブル', '挿入列1', '挿入列2の値', '参照テーブル', '条件列', '条件値']
                 if is_sel else ['区切%d' % (i + 1) for i in range(n_split)])
-    xtra_hd = (['部店コード', '部店名（定義書より）', 'UNIT_ID（定義書の5_部店マスタより）']
+    xtra_hd = (['部店コード', '部店名（定義書より）', 'UNIT_ID（定義書の5_部店マスタより）',
+                'VALUES形式に直した①のSQL']
                if is_sel else [])
 
-    HDR, TOP = 2, 3
+    HDR, TOP = 3, 4                        # 1行目=大区分 / 2行目=ブロック / 3行目=列名
     cA  = 1
     cS0 = 3
-    cX0 = cS0 + len(split_hd) + 1
-    cD0 = (cX0 + len(xtra_hd) + 1) if xtra_hd else cX0      # ② 定義書の値
-    cJ0 = cD0 + m + 1                     # ①②の突合（1列）
-    cQ0 = cJ0 + 2                         # 定義書のSQL
-    cK0 = cQ0 + ns + 1                    # ①③の突合（1列）
+    cX0 = cS0 + len(split_hd) + 1          # 参考（部店コード等）
+    cD0 = (cX0 + len(xtra_hd) + 1) if xtra_hd else cX0      # 定義書の値
+    cQ0 = cD0 + m + 1                      # 定義書のSQL
+    cJ0 = cQ0 + ns + 1                     # ①②の突合（項目ごと）
+    cAll = cJ0 + m                         # 全項目一致
+    cWhy = cJ0 + m + 1                     # 相違した項目
+    cK0 = cWhy + 1                         # ①③の突合
     cN0 = cK0 + 2
     cEnd = cN0 + 1
 
@@ -295,10 +319,20 @@ def build_sheet(wb, sec, dinfo, extra):
     if xtra_hd:
         head2(ws, cX0, xtra_hd, C_SPLIT, C_SPLIT, '参考')
     head2(ws, cD0, names, C_BLUE, C_GREEN, '横浜銀行様用出荷設定')
-    head2(ws, cJ0, ['一致'], C_JDG, C_JDG, '①②の突合')
     head2(ws, cQ0, snames, C_PINK, C_PINK, 'SQL')
-    head2(ws, cK0, ['一致'], C_JDG, C_JDG, '①③の突合')
+    head2(ws, cJ0, list(names) + ['全項目一致', '相違した項目'], C_JDG, C_JDG,
+          '①②の突合（項目ごと）')
+    head2(ws, cK0, ['SQL文一致'], C_JDG, C_JDG, '①③の突合')
     head2(ws, cN0, ['判定', '備考'], C_NOTE, C_NOTE, '確認結果')
+
+    # 1行目 : 左が資材、右が定義書であることを明示する
+    top_label(ws, cA, cS0 + len(split_hd) - 1, '① 資材（insert.sql）', C_RAW)
+    if xtra_hd:
+        top_label(ws, cX0, cX0 + len(xtra_hd) - 1, '参考', C_SPLIT)
+    top_label(ws, cD0, cQ0 + ns - 1, '②③ マスタ定義書', C_BLUE)
+    top_label(ws, cJ0, cK0, '突合', C_JDG)
+    top_label(ws, cN0, cEnd, '確認結果（記入欄）', C_NOTE)
+    ws.row_dimensions[2].height = 20
 
     diffs = []
     r = TOP
@@ -348,19 +382,35 @@ def build_sheet(wb, sec, dinfo, extra):
         # ---- 突合（式1本ずつ）----
         if s['kind'] == 'VALUES':
             ni = naive_index(s['args'])
-            types = [to_value(t)[1] for t in s['args']][:m]
-            val_f = value_cmp_formula(types, ni, cS0, cD0, r)
+            for j in range(m):
+                if j < len(s['args']):
+                    f = field_cmp_formula(to_value(s['args'][j])[1],
+                                          '%s%d' % (CL(cS0 + ni[j]), r),
+                                          '%s%d' % (CL(cD0 + j), r))
+                else:
+                    f = 'FALSE'
+                put2(ws, r, cJ0 + j, f, align='center')
             cat = '&'.join('%s%d' % (CL(cQ0 + k), r) for k in range(ns))
             sql_f = ('=EXACT(SUBSTITUTE(%s%d," ",""),SUBSTITUTE(%s," ",""))'
                      % (CL(cA), r, cat))
         else:
             # ①は UNIT_CODE、②は UNIT_ID なので、定義書の 5_部店マスタ で引いた値と比べる
-            val_f = '=EXACT(TRIM(%s%d)&","&TRIM(%s%d),%s%d&","&%s%d)' % (
-                CL(cX0 + 2), r, CL(cS0 + 2), r, CL(cD0), r, CL(cD0 + 1), r)
-            # ①は INSERT-SELECT、②は VALUES なので本文どうしで比べる
-            sql_f = ('=EXACT(SUBSTITUTE(%s%d," ",""),SUBSTITUTE(%s%d&" , "&%s%d," ",""))'
-                     % (CL(cQ0 + 3), r, CL(cX0 + 2), r, CL(cS0 + 2), r))
-        put2(ws, r, cJ0, val_f, align='center')
+            src = ['%s%d' % (CL(cX0 + 2), r), '%s%d' % (CL(cS0 + 2), r)]
+            for j in range(m):
+                f = ('=EXACT(TRIM(%s&""),%s%d&"")' % (src[j], CL(cD0 + j), r)
+                     if j < len(src) else 'FALSE')
+                put2(ws, r, cJ0 + j, f, align='center')
+            # ①は INSERT-SELECT、②は VALUES と書き方が違うため、
+            # ①を VALUES 形式に直したうえで、②のSQL文全体と比べる
+            put2(ws, r, cX0 + 3,
+                 '="INSERT INTO "&%s%d&" VALUES("&%s%d&" , "&%s%d&");"'
+                 % (CL(cS0), r, CL(cX0 + 2), r, CL(cS0 + 2), r))
+            cat = '&'.join('%s%d' % (CL(cQ0 + k), r) for k in range(ns))
+            sql_f = ('=EXACT(SUBSTITUTE(%s%d," ",""),SUBSTITUTE(%s," ",""))'
+                     % (CL(cX0 + 3), r, cat))
+        put2(ws, r, cAll, '=AND(%s%d:%s%d)' % (CL(cJ0), r, CL(cJ0 + m - 1), r),
+             align='center')
+        put2(ws, r, cWhy, diff_name_formula(cJ0, m, r, HDR))
         put2(ws, r, cK0, sql_f, align='center')
         ws.cell(row=r, column=2).border = BOX
         r += 1
@@ -369,16 +419,19 @@ def build_sheet(wb, sec, dinfo, extra):
     ws.freeze_panes = '%s%d' % (CL(cS0), TOP)
     ws.auto_filter.ref = '%s%d:%s%d' % (CL(cA), HDR, CL(cEnd), last)
     ws.column_dimensions['A'].width = 72
-    for c in (2, cX0 - 1, cD0 - 1, cJ0 - 1, cQ0 - 1, cK0 - 1, cN0 - 1):
+    for c in (2, cX0 - 1, cD0 - 1, cQ0 - 1, cJ0 - 1, cN0 - 1):
         if c >= 1:
             ws.column_dimensions[CL(c)].width = SEPW
     for i in range(len(split_hd)):
         ws.column_dimensions[CL(cS0 + i)].width = 22
     for i in range(len(xtra_hd)):
-        ws.column_dimensions[CL(cX0 + i)].width = 22
+        ws.column_dimensions[CL(cX0 + i)].width = 54 if i == 3 else 22
     for i in range(m):
         ws.column_dimensions[CL(cD0 + i)].width = 15
-    ws.column_dimensions[CL(cJ0)].width = 11
+    for j in range(m):
+        ws.column_dimensions[CL(cJ0 + j)].width = 11
+    ws.column_dimensions[CL(cAll)].width = 11
+    ws.column_dimensions[CL(cWhy)].width = 24
     ws.column_dimensions[CL(cK0)].width = 11
     for i in range(ns):
         ws.column_dimensions[CL(cQ0 + i)].width = 62 if snames[i] == '数式' else 11
