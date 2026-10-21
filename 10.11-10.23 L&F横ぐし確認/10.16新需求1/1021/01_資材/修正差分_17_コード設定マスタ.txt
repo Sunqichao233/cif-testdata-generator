@@ -1,0 +1,34 @@
+﻿17_コード設定マスタ（MST_CODE_TBL）資材の修正差分
+================================================================
+
+■ 修正前（誤り）
+    INSERT INTO MST_CODE_TBL VALUES(67 , 'プルダウンコメント' , '002' , '21' , '該当あり（C情報）' , 103 , 'N');
+    INSERT INTO MST_CODE_TBL VALUES(68 , 'プルダウンコメント' , '002' , '22' , '取消し' , 106 , 'N');
+    UPDATE MST_CODE_TBL SET DSP_ORDER = 105 WHERE CODE_CNF_ID = 34 AND DSP_ORDER = 103;
+
+■ 修正後（マスタ定義書に合わせた）
+    UPDATE MST_CODE_TBL SET DSP_ORDER = 104 WHERE CODE_CNF_ID = 34 AND DSP_ORDER = 103;
+    UPDATE MST_CODE_TBL SET DSP_ORDER = 103 WHERE CODE_CNF_ID = 33 AND DSP_ORDER = 102;
+    INSERT INTO MST_CODE_TBL VALUES(67 , 'プルダウンコメント' , '002' , '21' , '該当あり（C情報）' , 102 , 'N');
+    INSERT INTO MST_CODE_TBL VALUES(68 , 'プルダウンコメント' , '002' , '22' , '取消し' , 105 , 'N');
+
+■ 修正の根拠
+    小島さんより「資材と実機DBが誤り。マスタ定義が正」とのご判断。
+    insert_定義書対比_差異精査結果1020.xlsx の 17_コード設定マスタ の
+    吹き出しに記載された内容のとおりに修正した。
+
+■ 修正のポイント
+    ・UPDATE を INSERT より前に置いた。
+      さらに CODE_CNF_ID=34 を先に動かす必要がある。
+      33 を先に 103 へ動かすと、まだ 103 にいる 34 と重複するため。
+    ・修正前は 34 を 105 へ動かしていたが、定義書の最終形では 34 は 104。
+      条件（DSP_ORDER = 103）も現状と合っておらず、0件更新になる恐れがあった。
+
+■ 修正後の並び（マスタ定義書と一致することを確認済み）
+    DSP_ORDER=100  CODE_CNF_ID=31  該当あり（コンプラ先）
+    DSP_ORDER=101  CODE_CNF_ID=32  該当あり（マーク先）
+    DSP_ORDER=102  CODE_CNF_ID=67  該当あり（C情報）     ★今回追加
+    DSP_ORDER=103  CODE_CNF_ID=33  該当あり（その他）
+    DSP_ORDER=104  CODE_CNF_ID=34  該当なし
+    DSP_ORDER=105  CODE_CNF_ID=68  取消し               ★今回追加
+    DSP_ORDER=199  CODE_CNF_ID=35  その他（手書き補記）

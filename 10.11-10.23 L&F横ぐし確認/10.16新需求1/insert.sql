@@ -300,9 +300,10 @@ INSERT INTO MNG_SEQ_NO_TBL VALUES('LF・損害金' , '0000000' , to_timestamp('2
 INSERT INTO MNG_SEQ_NO_TBL VALUES('LF・DM送付先一覧' , '0000000' , to_timestamp('2026/12/24 00:00:00' , 'yyyy/MM/dd hh24:mi:ss'));
 
 -- 17_コード設定マスタ
-INSERT INTO MST_CODE_TBL VALUES(67 , 'プルダウンコメント' , '002' , '21' , '該当あり（C情報）' , 103 , 'N');
-INSERT INTO MST_CODE_TBL VALUES(68 , 'プルダウンコメント' , '002' , '22' , '取消し' , 106 , 'N');
-UPDATE MST_CODE_TBL SET DSP_ORDER = 105 WHERE CODE_CNF_ID = 34 AND DSP_ORDER = 103;
+UPDATE MST_CODE_TBL SET DSP_ORDER = 104 WHERE CODE_CNF_ID = 34 AND DSP_ORDER = 103;
+UPDATE MST_CODE_TBL SET DSP_ORDER = 103 WHERE CODE_CNF_ID = 33 AND DSP_ORDER = 102;
+INSERT INTO MST_CODE_TBL VALUES(67 , 'プルダウンコメント' , '002' , '21' , '該当あり（C情報）' , 102 , 'N');
+INSERT INTO MST_CODE_TBL VALUES(68 , 'プルダウンコメント' , '002' , '22' , '取消し' , 105 , 'N');
 
 -- 23_フィルタリング定義マスタ
 INSERT INTO MST_FILTERING_DEF_TBL VALUES(16 , 'C:\aml_filter\list\watchList\exec\BC_integratedList.txt' , 'C:\aml_filter\parm\online\aml01\combi_BC_aml01_online.csv' , 70000 , 'N' , 'C:\aml_filter\parm\batch\aml01\combi_BC_aml01_batch.csv');
