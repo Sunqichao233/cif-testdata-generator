@@ -1,0 +1,140 @@
+﻿PostgreSQL（amldb）の見かた・直しかた
+　L&F 追加検証　26_CIFファイルフィルタリング設定の 6→7 対応
+　2026/10/28　孫
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+0. 前提
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  DB種別   PostgreSQL 15.4
+  DB名     amldb
+  ユーザ   aml_user
+  ホスト   amldb01        ← 統計エクスポートの記録より
+  文字     UTF8 / ja_JP.UTF-8
+
+  ・ホスト名・ポート・パスワードは環境ごとに違う。
+    必ず対象環境の手順書か担当者に確認すること。
+  ・本番／共用の性能環境では絶対に UPDATE しない。
+  ・今回の 26 の修正は 2026/10/28 に阿部さんの了承済み（検証環境）。
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. つなぐ
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  psql -h amldb01 -U aml_user -d amldb
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2. 中を見る（psql のメタコマンド。頭が \ のもの）
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  \dt                              テーブル一覧
+  \dt cnf_*                        CNF_ で始まるテーブルだけ
+  \d cnf_cif_file_filtering_tbl    列定義・主キー・制約を見る
+  \x                               縦表示に切替（列が多いとき見やすい）
+  \timing                          実行時間を表示
+  \o C:/temp/out.txt               以降の結果をファイルへ（戻すときは \o だけ）
+  \q                               終了
+
+  ※ PostgreSQL は引用符なしの名前を小文字に畳む。
+     資材が大文字で書いてあっても実体は小文字。どちらで打っても動く。
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3. 今回見る5本
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+--- ① 26：LF記号 O〜T の設定（今回の本命）------------------------
+SELECT file_attr,
+       string_agg(filtering_def_id::text, ',' ORDER BY filtering_def_id) AS def_ids
+  FROM cnf_cif_file_filtering_tbl
+ WHERE in_comp_code = 'A'
+ GROUP BY file_attr
+ ORDER BY file_attr;
+
+   期待（修正前）  O〜T に 6 があり 7 が無い   ← これが不具合
+   期待（修正後）  O〜T に 7 があり 6 が無い
+
+
+--- ② 24：リスト切替フィルタリング設定（26 と同じ病気の疑い）------
+SELECT filtering_list_id,
+       string_agg(filtering_def_id::text, ',' ORDER BY filtering_def_id) AS def_ids
+  FROM cnf_list_filtering_tbl
+ GROUP BY filtering_list_id
+ ORDER BY filtering_list_id;
+
+   ここにも 6 があって 7 が無ければ、26 だけ直しても直らない。
+   小島さんの 10/28 の資料では 24 の実機状態は未記載なので要確認。
+
+
+--- ③ 全銀協（個人）のリストが実際に取り込まれているか -------------
+SELECT r.lst_id, o.origin, o.origin_jp, r.list_num, r.last_reg_date
+  FROM lst_reg_tbl r
+  JOIN mst_lstorigin_tbl o ON o.lst_id = r.lst_id
+ WHERE r.lst_id IN (4,5,6,7,8)
+ ORDER BY r.lst_id;
+
+   lst_id=7（ASI 全銀協（個人））の list_num が NULL や 0 なら
+   リスト自体が入っていない。26 を直してもヒットしない。
+
+
+--- ④ リスト発行元の設定（個人／法人の別・有効かどうか）------------
+SELECT lst_id, origin, origin_jp, is_disp, is_check, is_com_check,
+       filtering_def_id, threshold
+  FROM mst_lstorigin_tbl
+ ORDER BY lst_id;
+
+   is_check='Y'      → 個人の照合対象
+   is_com_check='Y'  → 法人の照合対象
+   lst_id=7 は is_check='Y' / is_com_check='N'（個人専用）のはず。
+
+
+--- ⑤ 25：部店フィルタリング（こちらは実機は正しいはず。念のため）----
+SELECT filtering_def_id, count(*) AS unit_cnt
+  FROM cnf_unit_filtering_tbl
+ WHERE filtering_def_id IN (6,7)
+ GROUP BY filtering_def_id
+ ORDER BY filtering_def_id;
+
+   6 が 0件、7 が 596件 なら正しい。
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+4. 直す
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  26_CIF_FILTERING_6to7.sql を参照。
+  必ず BEGIN; 〜 COMMIT; で囲み、UPDATE の件数が 6 であることを
+  目で確認してから COMMIT すること。
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+5. 直したあと
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ・③①を再実行して反映を確認する。
+  ・このテーブルを起動時に読む作りだと AP の再起動が要る。
+    どちらか不明なので、変わらなければ再起動して再確認する。
+  ・既に判定済みのデータは再判定されない。
+    必ず CIF ファイルをアップロードし直して、新しい判定で確認する。
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+6. 補足：項番41 の読み方
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  項番41 = LF・LOANS＋ = FILE_ATTR 'O'
+
+  修正前の実機は 9件ヒット。設定は12件あるので3件出ていない。
+
+    警察庁（法人）  … 法人専用リスト。試験データが個人なので出なくて正常
+    全銀協（法人）  … 同上
+    警察庁（IB）    … リスト自体が空（2026/04/13 の統合対応で廃止相当）
+
+  修正後は 全銀協（個人）が増えて 10件になるのが正。
+
+  なお SCL の想定結果は
+    ・全銀協（個人）の赤い取消線を外す（出るのが正）
+    ・警察庁（法人）と全銀協（法人）を外す（個人データでは出ない）
+  とするのが正しいと考えている。小島さんに確認すること。
