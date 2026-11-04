@@ -6,3 +6,12 @@
 ・ORDER BY：各テーブルの主キー順が妥当かと思います。主キー一覧は以下です。
 　（主キー一覧を貼る）
 　主キーのないテーブルは SELECT * FROM XXX t ORDER BY t; で全カラム順に並べられます。
+
+\qecho -- 1_プロファイルマスタ
+SELECT * FROM MST_PRF_TBL ORDER BY PRF_ID;
+
+\qecho -- 11_プロファイル設定
+SELECT * FROM CNF_PRF_TBL ORDER BY PRF_ID, EXEC_AUTH_ID;
+
+\qecho -- 21_リスト登録情報
+SELECT * FROM LST_REG_TBL t ORDER BY t;
