@@ -25,3 +25,8 @@ desktop.ini
 .vscode/
 .idea/
 
+
+# 現地リリース資材の properties（認証情報を含むため追跡しない）
+# ※ 本リポジトリは公開のため、パスワード／RDSエンドポイントを含むファイルは除外する
+**/AIScoringAPICall.properties
+**/AIScoringImport.properties

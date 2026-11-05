@@ -1,98 +1,118 @@
-﻿AIScoringConfig.properties 資材メモ
-取得日：2026/11/05　　取得元：【横東】V5.0 現地リリース資材
-資材パス：common\tools\AIScoringExport\aml01 ／ common\tools\AIScoringExport\aml02
-突合先 ：Oculus-filterV5.0-環境定義書_設定ファイル_横東.xlsx
-         シート「properties設定一覧(AML)」 行158-163（aml01）／行175-180（aml02）
-
-※ 当初ファイル名を「AIScoringExport.properties」と仮置きしていたが、
-   環境定義書 C列の記載により「AIScoringConfig.properties」が正であることを確認し、改名済。
+﻿AIスコアリング関連 properties 資材メモ
+取得日：2026/11/05　　取得元：V5.0 現地リリース資材（適用モジュール）
 
 ───────────────────────────────────────────────
-■ 原本内容（資材）
+■ 格納先
 ───────────────────────────────────────────────
-〔aml01〕                            〔aml02〕
-  BANKID=0138                         BANKID=0525
-  DELI=$                              DELI=$
-  SCHEMA=aml01                        SCHEMA=aml02
-  EXPORTDATE=00000000                 EXPORTDATE=00000000
-  STARTDATE=90                        STARTDATE=90
-  ENDDATE=0                           ENDDATE=0
+资料\資材_横東\common\tools\AIScoringExport\aml01\AIScoringConfig.properties
+资料\資材_横東\common\tools\AIScoringExport\aml01\APICall\AIScoringAPICall.properties
+资料\資材_横東\common\tools\AIScoringExport\aml02\AIScoringConfig.properties
+资料\資材_横東\common\tools\AIScoringExport\aml02\APICall\AIScoringAPICall.properties
+资料\資材_横東\common\tools\AIScoringImport\AIScoringImport.properties
+资料\資材_陸道七\common\tools\AIScoringExport\aml01\AIScoringConfig.properties
+资料\資材_陸道七\common\tools\AIScoringExport\aml01\APICall\AIScoringAPICall.properties
+资料\資材_陸道七\common\tools\AIScoringExport\aml02\AIScoringConfig.properties
+资料\資材_陸道七\common\tools\AIScoringExport\aml02\APICall\AIScoringAPICall.properties
+资料\資材_陸道七\common\tools\AIScoringExport\aml03\AIScoringConfig.properties
+资料\資材_陸道七\common\tools\AIScoringExport\aml03\APICall\AIScoringAPICall.properties
+
+※ AIScoringAPICall.properties と AIScoringImport.properties は認証情報を含むため
+   .gitignore で追跡対象外としている（本リポジトリは公開のため）。
+   バックアップはローカルにのみ存在する。
+※ AIScoringImport.properties の採取元（横東／陸道七のどちらか）は未確認。
+   暫定で 資材_横東 配下に格納している。
+※ APICall の冒頭「#****…」の桁数はスクリーンショットから読み取った推定値。
+   原本は1,392文字。本メモの再現版とは数文字ずれる可能性がある（値の部分は忠実）。
 
 ───────────────────────────────────────────────
-■ ②設計書 ↔ ④資材 突合結果　　全12項目 一致（○）
+■ AIScoringConfig.properties（スキーマ別）
 ───────────────────────────────────────────────
-〔aml01（横浜銀行）〕　設計書 行158-163
-  プロパティ    E列(PKG標準)   I列(調整後)   有効値      資材        判定
-  BANKID        0138           -             0138        0138        ○
-  DELI          $              -             $           $           ○
-  SCHEMA        aml01          -             aml01       aml01       ○
-  EXPORTDATE    00000000       -             00000000    00000000    ○
-  STARTDATE     60             90            90          90          ○
-  ENDDATE       30             0             0           0           ○
+                   横東aml01  横東aml02  陸道七aml01 陸道七aml02 陸道七aml03
+  BANKID             0138       0525       0116       0125       0144
+  DELI               $          $          $          $          $
+  SCHEMA             aml01      aml02      aml01      aml02      aml03
+  EXPORTDATE         00000000   00000000   00000000   00000000   00000000
+  STARTDATE          90         90         90         90         90
+  ENDDATE            0          0          0          0          0
 
-〔aml02（東日本銀行）〕　設計書 行175-180
-  BANKID        0525           -             0525        0525        ○
-  （DELI以下は aml01 と同一。全て ○）
-
-※ STARTDATE / ENDDATE は PKG標準（60/30）から変更されており、
-   設計書 I列に 90 / 0 と記載、資材も 90 / 0。設計書どおりに反映されている。
-
-───────────────────────────────────────────────
-■ ①ヒアリングシートとのクロスチェック
-───────────────────────────────────────────────
-BANKID
-  aml01 = 0138 → ヒアシ1部 表3-1-1「0138＝横浜銀行」と一致　○
-  aml02 = 0525 → ヒアシ1部 表3-1-1「0525＝東日本銀行」と一致　○
-  （設計書 H列「ヒアリング有無」も「１部_システム概要」となっており整合）
-
-SCHEMA
-  aml01 → 環境定義書 HULFTパラメータ 配信管理情報 #3 コメント（行207）
-          「AIスコアリング審査結果連携(AML01)」と一致　○
-  aml02 → 同 #4 コメント（行233）「…(AML02)」と一致　○
-  ＝ 配信ファイルID KJU2M001＝横浜（aml01）／KEU2M001＝東日本（aml02）を
-     資材側からも裏付け。
-
-★ STARTDATE / ENDDATE
-  設計書 H列（ヒアリング有無）は「AIスコアリングヒアリングシート」となっているが、
-  入手済のヒアシ 1部・2部 に該当する記入欄が見当たらない。
-  別冊のヒアリングシートがあるのか、それとも H列の記載誤りか、要確認。
+  → 5ファイルとも設計書（properties設定一覧(AML)）と全項目一致。
+  → STARTDATE=90 / ENDDATE=0 は 修正履歴 項番57（横東）／項番53（陸道七）
+     「PKG標準 60→90 / 30→0」が資材側にも反映済み。
+  → 利用会社との対応（ヒアリングシート1部 表3-1-1 と一致）
+       0138＝横浜銀行　0525＝東日本銀行
+       0116＝北海道銀行　0125＝七十七銀行　0144＝北陸銀行
 
 ───────────────────────────────────────────────
-■ 同フォルダ配下のもう一つの設定ファイル（資材未入手）
+■ AIScoringAPICall.properties（スキーマ別）★要確認
 ───────────────────────────────────────────────
-common\tools\AIScoringExport\aml0N\APICall\AIScoringAPICall.properties
-  設計書 行165-173（aml01）／行182-190（aml02）
-  hostname / user / password … 設計書 E列・I列とも空欄（値の記載なし）
-                                 H列は「AIスコアリングヒアリングシート2部」
-  type=ns ／ retrysec=600 ／ retrycount=5 ／ boundaryString=Oculus...
-  inputpath   E列 C:\common\AIScoringExport\aml0N\export
-              I列 C:\common\tools\AIScoringExport\aml0N\export\
-  outputpath  E列 C:\PreRCV\input_AI\aml0N
-              I列 C:\FileRCV\input_AI\aml0N\
+                   横東aml01  横東aml02     陸道七aml01 陸道七aml02 陸道七aml03
+  hostname         127.0.0.1  0371.caml.jp  127.0.0.1  127.0.0.1  127.0.0.1
+  user             user01     API_filter    user01     user01     user01
+  password         4wxL…      DWIG…         4wxL…      4wxL…      4wxL…
+  type             ns         ns            ns         ns         ns
+  inputpath        C:/common/tools/AIScoringExport/ （5ファイルとも同一）
+  outputpath       aml01      aml02         aml01      aml02      aml03
+  retrysec         600        600           600        600        600
+  retrycount       5          5             5          5          5
+  boundaryString   Oculus…xxxxyz （5ファイルとも同一）
 
-  ★ 本ファイルの資材が未入手のため ②-④ は未実施。入手が必要。
-  ★ hostname / user / password は設計書に値が無いため、monitor の API設定と同様に
-     ①ヒアシ ↔ ④資材 の直接突合（①-④）とする運用が妥当。
+  ★ 実際にお客様設定値が入っているのは 横東aml02（東日本銀行）の1ファイルのみ。
+     他の4ファイルは hostname/user/password が PKGテンプレートのまま
+     （http://127.0.0.1:8081 ／ user01 ／ 5ファイル中4ファイルで同一の
+     パスワード）で、ヒアリングシート2部の値と一致しない。
+     outputpath だけはスキーマ別に正しく振られているため、
+     配備スクリプトでスキーマ別の雛形は生成されたが、
+     接続情報の設定作業が aml02（東日本）以外で行われていないと推測される。
+
+  ★ inputpath が5ファイルとも「C:/common/tools/AIScoringExport/」で、
+     設計書 I列の「C:\common\tools\AIScoringExport\amlXX\export\」と異なる。
+     5ファイル共通の差異のため、個別の設定ミスではなく
+     ・プログラム側でスキーマ名を付加している
+     ・設計書の記載が実装より細かい
+     のいずれかと推測。要確認。
+
+  ★ パス区切りが資材は「/」、設計書は「\」。ディレクトリは同一のため実害なし
+     （表記揺れとして突合表では別扱いにしている）。
 
 ───────────────────────────────────────────────
-■ 陸道七側
+■ AIScoringImport.properties（全スキーマ共通・1台に1ファイル）
 ───────────────────────────────────────────────
-設計書（Oculus-filterV5.0-環境定義書_設定ファイル_陸道七.xlsx）には記載あり。
-  aml01 BANKID=0116（北海道銀行）　行236-241　／ APICall 行243-251
-  aml02 BANKID=0125（七十七銀行）　行253-258　／ APICall 行260-268
-  aml03 BANKID=0144（北陸銀行）　　行270-275　／ APICall 行277-285
-  DELI / EXPORTDATE / STARTDATE / ENDDATE は横東と同値（$ / 00000000 / 90 / 0）。
-資材は未入手。入手でき次第 资料\資材_陸道七\ に同じ構成で格納して突合する。
+  connectstring  （RDSエンドポイント）:5432/amldb　※実エンドポイントが設定済
+  password       8Mrb…（計24桁）
+
+  → 設計書 properties設定一覧(AML) 行192-193（横東）／行287-288（陸道七）
+  → connectstring：E列（PKG標準）は localhost:5432/amldb だが、
+     I列（調整後）が「（RDSエンドポイント）:5432/amldb」＋
+     J列備考「DBサーバではなくRDSにDB構築しているため」。
+     資材はI列の指示どおり実エンドポイントが設定されており、整合している。
+  → password：設計書 E列の値と完全一致。
+     ※この値は設計書上の26個のpropertiesファイル全てで共通のPKG標準値。
+  ★ 同名ファイルは properties設定一覧(SIM) にも存在するが、SIM側はI列が空
+     ＝有効値は localhost:5432/amldb。AML側とSIM側で有効値が異なるため、
+     資材の採取元サーバ（AML／SIM）を要確認。
+  ★ 修正履歴 項番25「SimulationControl.properties の connectstring を
+     RDSエンドポイントからローカル接続に変更」との整合も要確認。
+
+───────────────────────────────────────────────
+■ 未入手
+───────────────────────────────────────────────
+  陸道七  AIScoringImport.properties
+  ※ 入手済の AIScoringImport.properties は採取元（横東／陸道七）が未確認のため、
+     暫定で 資材_横東 配下に格納している。陸道七側の同ファイルは別途要入手。
+  ※ AIScoringExport 配下（Config／APICall）は横東2スキーマ・陸道七3スキーマとも入手済。
 
 ───────────────────────────────────────────────
 ■ 小島さんへの確認事項
 ───────────────────────────────────────────────
-(1) AIScoringAPICall.properties の資材をいただけますか。
-    （横東 aml01/aml02、陸道七 aml01/aml02/aml03）
-(2) hostname / user / password は設計書に値の記載がありませんが、
-    monitor の API設定と同様に「設計書記載なし → ヒアシと資材を直接突合」
-    という扱いでよいですか。
-(3) AIScoringConfig の STARTDATE / ENDDATE はヒアリング有無が
-    「AIスコアリングヒアリングシート」となっていますが、
-    1部・2部のどちらにも該当欄が見当たりません。別冊がありますか。
-(4) common\tools\AIScoringExport\ 配下に、他にも突合対象の設定ファイルはありますか。
+(1) AIScoringAPICall.properties の hostname/user/password が
+    横東aml02 以外の4ファイル（横東aml01／陸道七aml01・aml02・aml03）で
+    PKGテンプレートのままになっています。
+    現地リリース資材として正しい状態でしょうか。
+    （採取元フォルダが \API か \APICall かもあわせてご確認ください。
+      修正履歴 項番57/53 で \API → \APICall へ改名されています）
+(2) inputpath が5ファイルとも「C:/common/tools/AIScoringExport/」ですが、
+    設計書 I列は「…\amlXX\export\」です。どちらが正でしょうか。
+(3) パス区切りが資材は「/」、設計書は「\」です。
+    突合上は表記揺れとして扱ってよいでしょうか。
+(4) AIScoringImport.properties は AML側／SIM側で有効値が異なります。
+    横展開の突合対象は AML側のみという理解でよいでしょうか。
