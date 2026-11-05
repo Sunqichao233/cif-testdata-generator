@@ -1,0 +1,98 @@
+﻿AIScoringConfig.properties 資材メモ
+取得日：2026/11/05　　取得元：【横東】V5.0 現地リリース資材
+資材パス：common\tools\AIScoringExport\aml01 ／ common\tools\AIScoringExport\aml02
+突合先 ：Oculus-filterV5.0-環境定義書_設定ファイル_横東.xlsx
+         シート「properties設定一覧(AML)」 行158-163（aml01）／行175-180（aml02）
+
+※ 当初ファイル名を「AIScoringExport.properties」と仮置きしていたが、
+   環境定義書 C列の記載により「AIScoringConfig.properties」が正であることを確認し、改名済。
+
+───────────────────────────────────────────────
+■ 原本内容（資材）
+───────────────────────────────────────────────
+〔aml01〕                            〔aml02〕
+  BANKID=0138                         BANKID=0525
+  DELI=$                              DELI=$
+  SCHEMA=aml01                        SCHEMA=aml02
+  EXPORTDATE=00000000                 EXPORTDATE=00000000
+  STARTDATE=90                        STARTDATE=90
+  ENDDATE=0                           ENDDATE=0
+
+───────────────────────────────────────────────
+■ ②設計書 ↔ ④資材 突合結果　　全12項目 一致（○）
+───────────────────────────────────────────────
+〔aml01（横浜銀行）〕　設計書 行158-163
+  プロパティ    E列(PKG標準)   I列(調整後)   有効値      資材        判定
+  BANKID        0138           -             0138        0138        ○
+  DELI          $              -             $           $           ○
+  SCHEMA        aml01          -             aml01       aml01       ○
+  EXPORTDATE    00000000       -             00000000    00000000    ○
+  STARTDATE     60             90            90          90          ○
+  ENDDATE       30             0             0           0           ○
+
+〔aml02（東日本銀行）〕　設計書 行175-180
+  BANKID        0525           -             0525        0525        ○
+  （DELI以下は aml01 と同一。全て ○）
+
+※ STARTDATE / ENDDATE は PKG標準（60/30）から変更されており、
+   設計書 I列に 90 / 0 と記載、資材も 90 / 0。設計書どおりに反映されている。
+
+───────────────────────────────────────────────
+■ ①ヒアリングシートとのクロスチェック
+───────────────────────────────────────────────
+BANKID
+  aml01 = 0138 → ヒアシ1部 表3-1-1「0138＝横浜銀行」と一致　○
+  aml02 = 0525 → ヒアシ1部 表3-1-1「0525＝東日本銀行」と一致　○
+  （設計書 H列「ヒアリング有無」も「１部_システム概要」となっており整合）
+
+SCHEMA
+  aml01 → 環境定義書 HULFTパラメータ 配信管理情報 #3 コメント（行207）
+          「AIスコアリング審査結果連携(AML01)」と一致　○
+  aml02 → 同 #4 コメント（行233）「…(AML02)」と一致　○
+  ＝ 配信ファイルID KJU2M001＝横浜（aml01）／KEU2M001＝東日本（aml02）を
+     資材側からも裏付け。
+
+★ STARTDATE / ENDDATE
+  設計書 H列（ヒアリング有無）は「AIスコアリングヒアリングシート」となっているが、
+  入手済のヒアシ 1部・2部 に該当する記入欄が見当たらない。
+  別冊のヒアリングシートがあるのか、それとも H列の記載誤りか、要確認。
+
+───────────────────────────────────────────────
+■ 同フォルダ配下のもう一つの設定ファイル（資材未入手）
+───────────────────────────────────────────────
+common\tools\AIScoringExport\aml0N\APICall\AIScoringAPICall.properties
+  設計書 行165-173（aml01）／行182-190（aml02）
+  hostname / user / password … 設計書 E列・I列とも空欄（値の記載なし）
+                                 H列は「AIスコアリングヒアリングシート2部」
+  type=ns ／ retrysec=600 ／ retrycount=5 ／ boundaryString=Oculus...
+  inputpath   E列 C:\common\AIScoringExport\aml0N\export
+              I列 C:\common\tools\AIScoringExport\aml0N\export\
+  outputpath  E列 C:\PreRCV\input_AI\aml0N
+              I列 C:\FileRCV\input_AI\aml0N\
+
+  ★ 本ファイルの資材が未入手のため ②-④ は未実施。入手が必要。
+  ★ hostname / user / password は設計書に値が無いため、monitor の API設定と同様に
+     ①ヒアシ ↔ ④資材 の直接突合（①-④）とする運用が妥当。
+
+───────────────────────────────────────────────
+■ 陸道七側
+───────────────────────────────────────────────
+設計書（Oculus-filterV5.0-環境定義書_設定ファイル_陸道七.xlsx）には記載あり。
+  aml01 BANKID=0116（北海道銀行）　行236-241　／ APICall 行243-251
+  aml02 BANKID=0125（七十七銀行）　行253-258　／ APICall 行260-268
+  aml03 BANKID=0144（北陸銀行）　　行270-275　／ APICall 行277-285
+  DELI / EXPORTDATE / STARTDATE / ENDDATE は横東と同値（$ / 00000000 / 90 / 0）。
+資材は未入手。入手でき次第 资料\資材_陸道七\ に同じ構成で格納して突合する。
+
+───────────────────────────────────────────────
+■ 小島さんへの確認事項
+───────────────────────────────────────────────
+(1) AIScoringAPICall.properties の資材をいただけますか。
+    （横東 aml01/aml02、陸道七 aml01/aml02/aml03）
+(2) hostname / user / password は設計書に値の記載がありませんが、
+    monitor の API設定と同様に「設計書記載なし → ヒアシと資材を直接突合」
+    という扱いでよいですか。
+(3) AIScoringConfig の STARTDATE / ENDDATE はヒアリング有無が
+    「AIスコアリングヒアリングシート」となっていますが、
+    1部・2部のどちらにも該当欄が見当たりません。別冊がありますか。
+(4) common\tools\AIScoringExport\ 配下に、他にも突合対象の設定ファイルはありますか。
