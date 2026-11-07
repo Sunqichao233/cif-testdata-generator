@@ -1,0 +1,11 @@
+AIスコアリング処理－【AML01】AIスコアリングデータ抽出,C:\common\batches\AIScoringExport.bat -force aml01
+AIスコアリング処理－【AML02】AIスコアリングデータ抽出,C:\common\batches\AIScoringExport.bat -force aml02
+AIスコアリング処理－【AML03】AIスコアリングデータ抽出,C:\common\batches\AIScoringExport.bat -force aml03
+;AIスコアリング処理－【AML04】AIスコアリングデータ抽出,C:\common\batches\AIScoringExport.bat -force aml04
+;AIスコアリング処理－【AML05】AIスコアリングデータ抽出,C:\common\batches\AIScoringExport.bat -force aml05
+;AIスコアリング処理－【AML06】AIスコアリングデータ抽出,C:\common\batches\AIScoringExport.bat -force aml06
+;AIスコアリング処理－【AML07】AIスコアリングデータ抽出,C:\common\batches\AIScoringExport.bat -force aml07
+;AIスコアリング処理－【AML08】AIスコアリングデータ抽出,C:\common\batches\AIScoringExport.bat -force aml08
+;AIスコアリング処理－【AML09】AIスコアリングデータ抽出,C:\common\batches\AIScoringExport.bat -force aml09
+;AIスコアリング処理－【AML10】AIスコアリングデータ抽出,C:\common\batches\AIScoringExport.bat -force aml10
+AIスコアリング処理－イベントID発行,C:\common\batches\Create_Event.bat -force 810
