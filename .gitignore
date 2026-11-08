@@ -30,3 +30,6 @@ desktop.ini
 # ※ 本リポジトリは公開のため、パスワード／RDSエンドポイントを含むファイルは除外する
 **/AIScoringAPICall.properties
 **/AIScoringImport.properties
+
+# 保守運用の当番資料（Webexの認証情報・社内DL・氏名を含むため追跡しない）
+早番/
