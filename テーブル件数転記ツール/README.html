@@ -1,0 +1,261 @@
+<title>テーブル件数転記ツール</title>
+<style>
+  :root {
+    --bg: #ffffff; --fg: #222222; --muted: #666666;
+    --line: #cccccc; --head: #f2f2f2; --accent: #333333;
+    --note-bg: #fff8e1; --note-line: #e6a700;
+    --warn-bg: #fdecea; --warn-line: #d93025;
+    --code-bg: #f2f2f2;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1e1f22; --fg: #e6e6e6; --muted: #a0a0a0;
+      --line: #44474d; --head: #2b2d31; --accent: #8ab4f8;
+      --note-bg: #332b12; --note-line: #e6a700;
+      --warn-bg: #3a1f1d; --warn-line: #f28b82;
+      --code-bg: #2b2d31;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #1e1f22; --fg: #e6e6e6; --muted: #a0a0a0;
+    --line: #44474d; --head: #2b2d31; --accent: #8ab4f8;
+    --note-bg: #332b12; --note-line: #e6a700;
+    --warn-bg: #3a1f1d; --warn-line: #f28b82;
+    --code-bg: #2b2d31;
+  }
+
+  body { font-family: "Meiryo", "Yu Gothic", "Hiragino Kaku Gothic ProN", sans-serif;
+         line-height: 1.8; max-width: 780px; margin: 40px auto; padding: 0 24px;
+         background: var(--bg); color: var(--fg); }
+  h1 { font-size: 20px; border-bottom: 2px solid var(--accent); padding-bottom: 8px; }
+  h2 { font-size: 16px; margin-top: 34px; border-left: 4px solid var(--accent);
+       padding-left: 10px; }
+  ol, ul { padding-left: 24px; }
+  li { margin-bottom: 6px; }
+  p  { margin: 8px 0; }
+  code { background: var(--code-bg); padding: 2px 6px; border-radius: 3px;
+         font-family: "Consolas", "Courier New", monospace; font-size: 90%; }
+  pre { background: var(--code-bg); padding: 12px 14px; border-radius: 4px;
+        overflow-x: auto; font-family: "Consolas", monospace; font-size: 88%;
+        line-height: 1.6; }
+  .wrap { overflow-x: auto; }
+  table { border-collapse: collapse; margin-top: 8px; min-width: 100%; }
+  th, td { border: 1px solid var(--line); padding: 6px 12px; text-align: left;
+           font-size: 95%; vertical-align: top; }
+  th { background: var(--head); white-space: nowrap; }
+  .note { background: var(--note-bg); border-left: 4px solid var(--note-line);
+          padding: 10px 14px; margin-top: 12px; }
+  .warn { background: var(--warn-bg); border-left: 4px solid var(--warn-line);
+          padding: 10px 14px; margin-top: 12px; }
+  .muted { color: var(--muted); font-size: 90%; }
+</style>
+
+<h1>テーブル件数転記ツール</h1>
+
+<h2>概要</h2>
+<p>統計情報ファイル（<code>exp_Statics_yyyymmddhhmm.txt</code>）の「テーブル統計情報」から
+<code>n_live_tup</code> を取得し、<code>@テーブル件数確認_filter</code> の右端に
+1 か月分（3 列）を追加します。</p>
+
+<pre>exp_Statics_202607010100.txt
+      │
+      │  ① bat にドラッグ＆ドロップ（テーブル統計情報だけ切り出す）
+      ↓
+csv\exp_Statics_202607010100.csv
+      │
+      │  ② マクロ n_live_tup取込 を実行
+      ↓
+@テーブル件数確認_filter.xlsm  の表示中のシートの右端に 3 列</pre>
+
+<p>出力は<strong>表示中の 1 シートだけ</strong>です。別シートは作りません。
+CSV は読み取り専用で開き、保存せずに閉じます。</p>
+
+<h2>入力</h2>
+<ul>
+  <li>統計情報ファイル（TXT）1 本<br>
+      例）<code>exp_Statics_202607010100.txt</code><br>
+      ファイル名末尾の 12 桁（<code>yyyymmddhhmm</code>）を取得日として使います。</li>
+  <li><code>@テーブル件数確認_filter.xlsm</code> の対象シート（横東／陸道七）<br>
+      A列：スキーマ名（ブロックの先頭行だけでも可）<br>
+      B列：テーブル名　例）<code>リスト履歴(HST_LIST_FOR_HISTORY_TBL)</code></li>
+</ul>
+
+<h2>出力</h2>
+<p>対象シートの見出し行（3 行目）の右端の次から 3 列。</p>
+<div class="wrap">
+<table>
+  <tr><th>列</th><th>内容</th></tr>
+  <tr><td>1 列目</td><td>取得日（ファイル名の日時）</td></tr>
+  <tr><td>2 列目</td><td>件数（<code>n_live_tup</code>）</td></tr>
+  <tr><td>3 列目</td><td>想定件数比率（空欄。書式のみ）</td></tr>
+</table>
+</div>
+<p>2 行目に年月（取得日の前月。例：7/1 取得 → 2026/6）を書きます。<br>
+書式・列幅・見出し・セル結合は直前の 3 列からコピーします。</p>
+
+<h2>指定の場所</h2>
+<div class="wrap">
+<table>
+  <tr><th></th><th>場所</th></tr>
+  <tr><td>切り出した CSV の置き場所</td>
+      <td>このツールのフォルダの <code>csv\</code><br>
+          <span class="muted">bat が自動で作ります。ファイル名は元の TXT と同じです</span></td></tr>
+  <tr><td>転記先のシート</td>
+      <td>マクロ実行時に<strong>表示しているシート</strong>（横東 または 陸道七）</td></tr>
+  <tr><td>転記先のセル</td>
+      <td>見出し行（3 行目）の右端の次の列から 3 列<br>
+          <span class="muted">既存が K 列までなら L〜N 列。マクロが自動で判断します</span></td></tr>
+</table>
+</div>
+
+<h2>導入（初回だけ）</h2>
+<ol>
+  <li><code>@テーブル件数確認_filter.xlsm</code> を開く</li>
+  <li><code>Alt</code>+<code>F11</code> で VBE を開く</li>
+  <li>「ファイル」→「ファイルのインポート」で <code>n_live_tup取込.bas</code> を選ぶ</li>
+  <li>標準モジュール <code>modTableCount</code> が追加される</li>
+  <li>ブックを保存する（拡張子は <code>.xlsm</code> のまま）</li>
+</ol>
+
+<h2>利用手順</h2>
+<ol>
+  <li>統計情報ファイル（TXT）を
+      <strong>「ここに統計情報ファイルをドラッグ＆ドロップしてください.bat」</strong> に乗せる</li>
+  <li>切り出し結果を確認する（行数・列数と、<code>n_live_tup</code> が何列目かが出ます）</li>
+  <li><code>@テーブル件数確認_filter.xlsm</code> を開き、
+      転記したいシート（横東 または 陸道七）を表示する</li>
+  <li><code>Alt</code>+<code>F8</code> → <code>n_live_tup取込</code> を実行する</li>
+  <li><code>csv\</code> にできた CSV を選択する</li>
+  <li>完了メッセージの件数を確認し、問題なければ<strong>手動で保存する</strong></li>
+</ol>
+
+<h2>照合方法</h2>
+<p>「スキーマ名 + テーブル名」をキーに照合します（大文字小文字は区別しません）。</p>
+<p>例）<code>aml|cnf_sec_tbl</code> ／ <code>aml01|cnf_sec_tbl</code> ／ <code>aml02|cnf_sec_tbl</code></p>
+<p>テーブル名は B 列の最後の括弧の中身を使います。</p>
+<div class="wrap">
+<table>
+  <tr><th>B列の値</th><th>取り出すテーブル名</th></tr>
+  <tr><td>リスト履歴(HST_LIST_FOR_HISTORY_TBL)</td><td>HST_LIST_FOR_HISTORY_TBL</td></tr>
+  <tr><td>リストファイルアップロード管理（バッチ）(MNG_LIST_FILE_UPLOAD_BATCH_TBL)</td>
+      <td>MNG_LIST_FILE_UPLOAD_BATCH_TBL</td></tr>
+</table>
+</div>
+<p class="muted">行の並び順は見ていません。並びが違っていてもキーで突き合わせます。</p>
+
+<h2>完了メッセージの見方</h2>
+<div class="wrap">
+<table>
+  <tr><th>項目</th><th>意味</th></tr>
+  <tr><td>転記</td><td>件数を書き込めた行数</td></tr>
+  <tr><td>CSVに無いテーブル<br>（赤セル）</td>
+      <td>シートにあるが CSV に無い。件数は空欄で赤く塗ります</td></tr>
+  <tr><td>シートに無いテーブル</td>
+      <td>CSV にあるがシートに無い。テーブル追加の可能性があるため一覧を表示します</td></tr>
+</table>
+</div>
+<p class="muted">「シートに無いテーブル」は、シートの A 列に出てくるスキーマのものだけを表示します。</p>
+
+<h2>制限事項</h2>
+<ul>
+  <li>マクロ実行後は <code>Ctrl</code>+<code>Z</code> で元に戻せません。実行前に保存しておいてください。</li>
+  <li>自動保存はしません。</li>
+  <li>同じ取得日のデータが右端に既にある場合は確認メッセージが出ます。</li>
+  <li>想定件数比率は計算しません。</li>
+</ul>
+
+<h2>レイアウトが変わったとき</h2>
+<p>マクロ先頭の「設定」の定数だけ直してください。</p>
+<div class="wrap">
+<table>
+  <tr><th>定数</th><th>既定</th><th>意味</th></tr>
+  <tr><td><code>YM_ROW</code></td><td>2</td><td>年月を書く行</td></tr>
+  <tr><td><code>HEADER_ROW</code></td><td>3</td><td>見出し行</td></tr>
+  <tr><td><code>FIRST_DATA_ROW</code></td><td>4</td><td>データ開始行</td></tr>
+  <tr><td><code>COL_SCHEMA</code></td><td>1</td><td>スキーマ名の列（A列）</td></tr>
+  <tr><td><code>COL_TABLE</code></td><td>2</td><td>テーブル名の列（B列）</td></tr>
+  <tr><td><code>BLOCK_COLS</code></td><td>3</td><td>1 か月あたりの列数</td></tr>
+  <tr><td><code>YM_OFFSET_MONTH</code></td><td>-1</td><td>年月のずらし方（-1＝前月）</td></tr>
+  <tr><td><code>CSV_COL_SCHEMA / TABLE / LIVE</code></td><td>2 / 3 / 15</td>
+      <td>CSV の B / C / O 列。<strong>見出し行が見つかったときは使いません</strong></td></tr>
+  <tr><td><code>CSV_FIRST_ROW</code></td><td>42</td>
+      <td>同上。見出し行が見つからないときだけ使うデータ開始行</td></tr>
+</table>
+</div>
+<p class="muted">切り出し側（区切り文字・セクション名）は <code>script\extract.ps1</code> の先頭にあります。</p>
+
+<h2>動かないとき</h2>
+<ul>
+  <li>対象シート（横東／陸道七）を表示した状態で実行しているか</li>
+  <li>TXT に「テーブル統計情報」（<code>n_live_tup</code> の列）があるか</li>
+  <li>ファイル名の末尾が <code>_yyyymmddhhmm</code> になっているか</li>
+  <li>A列のスキーマ名が TXT の <code>schemaname</code> と一致しているか</li>
+</ul>
+
+<div class="note">
+  <strong>CSV の列位置について</strong><br>
+  マクロは見出し行（<code>schemaname</code> / <code>relname</code> / <code>n_live_tup</code> がそろう行）を
+  探して列位置を決めます。<br>
+  そのため、bat で切り出した CSV（見出しが 1 行目）でも、
+  統計情報ファイル全体を区切り文字 <code>|</code> で CSV にしたもの（データが 42 行目から）でも、
+  どちらでも動きます。<br><br>
+  TXT の文字コードは Shift_JIS と UTF-8 を自動で判別します。CSV は Shift_JIS で出力します。
+</div>
+
+<div class="warn">
+  実行すると元に戻せません。実行前にブックを保存しておいてください。<br>
+  おかしくなった場合は、保存せずにブックを閉じれば実行前の状態に戻ります。
+</div>
+
+<h2>マクロを使わない場合</h2>
+<p>bat で切り出した CSV を手で貼り付ける手順でも構いません。</p>
+<ol>
+  <li>bat を実行して <code>csv\</code> に CSV を作る</li>
+  <li>CSV を Excel で開く</li>
+  <li><code>n_live_tup</code> の列（O 列）をコピーする</li>
+  <li>対象シートの<strong>件数の列の 4 行目</strong>（既存が K 列までなら <code>M4</code>）に貼り付ける</li>
+  <li>取得日・年月・見出し・書式は手で入れる</li>
+</ol>
+<div class="warn">
+  貼り付け方式にする場合、<strong>CSV の行の並び順とシートの行の並び順が完全に一致している必要があります</strong>。
+  テーブルが 1 つ増えただけで以降が全部ずれます。<br>
+  マクロはスキーマ名＋テーブル名で突き合わせるため、並び順が違っていても、
+  テーブルが増減していても正しく入ります。
+</div>
+
+<h2>同梱ファイル</h2>
+<div class="wrap">
+<table>
+  <tr><th>ファイル</th><th>内容</th></tr>
+  <tr><td><code>ここに統計情報ファイルをドラッグ＆ドロップしてください.bat</code></td>
+      <td>TXT から「テーブル統計情報」を切り出して CSV にする</td></tr>
+  <tr><td><code>script\extract.ps1</code></td><td>上の中身</td></tr>
+  <tr><td><code>n_live_tup取込.bas</code></td><td>マクロ本体。VBE にインポートして使う</td></tr>
+  <tr><td><code>README.html</code></td><td>この説明</td></tr>
+  <tr><td><code>sample_テーブル件数確認_filter.xlsx</code></td><td>シートのレイアウト見本</td></tr>
+  <tr><td><code>csv\</code></td><td>切り出した CSV の出力先（bat が作ります）</td></tr>
+  <tr><td><code>testdata\</code></td><td>動作確認用の統計情報ファイル（下記）</td></tr>
+</table>
+</div>
+
+<h2>動作確認用データ（testdata フォルダ）</h2>
+<div class="wrap">
+<table>
+  <tr><th>ファイル</th><th>文字コード</th><th>確認できること</th></tr>
+  <tr><td><code>exp_Statics_202607010100.txt</code></td><td>Shift_JIS</td>
+      <td>見本シートの 2026/6 列（取得日 2026/7/1）と同じ値になること。<br>
+          <code>DUMMY_NOT_IN_FILE_TBL</code> は入っていないため赤セルになる</td></tr>
+  <tr><td><code>exp_Statics_202608010100.txt</code></td><td>Shift_JIS</td>
+      <td>前後に別のセクションがあっても「テーブル統計情報」だけを読むこと。<br>
+          前の「テーブルサイズ」は <code>schemaname</code>・<code>relname</code> を持つが
+          <code>n_live_tup</code> が無いため見出しと誤認しないこと</td></tr>
+  <tr><td><code>exp_Statics_202609010100.txt</code></td><td>UTF-8</td>
+      <td>文字コードの自動判別。<br>
+          新規テーブル <code>mng_list_for_read_batch_tbl</code> が
+          「シートに無いテーブル」に出ること。<br>
+          シートに無いスキーマ <code>aml02</code> は一覧に出ないこと</td></tr>
+</table>
+</div>
+<p class="muted">relid・relname・n_live_tup は実ファイルの値です。それ以外の列は確認用の値を入れています。<br>
+「テーブル統計情報」の前に別のセクションを 41 行入れてあります（1 件目が 42 行目）。
+前任者のマクロが CSV の 42 行目から読んでいたことに合わせたものです。</p>
