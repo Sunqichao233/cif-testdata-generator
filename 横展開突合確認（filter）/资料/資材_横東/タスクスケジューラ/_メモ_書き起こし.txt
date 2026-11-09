@@ -1,0 +1,12 @@
+﻿タスクスケジューラ エクスポートXML（横東）  2026/11/09 スクリーンショットから書き起こし
+
+・16_AIスコアリング処理.xml          ：画面全体から書き起こし
+・17_AIスコアリング処理（審査結果）.xml：画面が <URI> 行から始まっていたため、先頭（xml宣言／Task／Author）は 16 と同じ形式で補完
+・手動実行_AML01.xml / 手動実行_AML02.xml：<URI> が無いエクスポートのため、タスク名はXML上では確認できない。ファイル名は便宜上の名前
+・手動実行 AML03〜10 のXMLは未入手（導入型×のため未登録と推定、未確認）
+・文字コードは原本どおり UTF-16（BOM付き）、改行 CRLF で保存。インデント幅は推定
+
+気付き（設計書の比較対象外）
+・16 は StartWhenAvailable=false、17 は true
+・16/17 は UserId がSID（…-1005）、手動実行2件は UserId=OCULUS01
+・16/17 は UseUnifiedSchedulingEngine=true・ExecutionTimeLimit=PT72H、手動実行2件は false・P3D（どちらも72時間）

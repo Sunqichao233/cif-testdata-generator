@@ -1,0 +1,17 @@
+﻿タスクスケジューラ エクスポートXML（陸道七）  2026/11/09 スクリーンショットから書き起こし
+
+・16_AIスコアリング処理.xml：画面から書き起こし（先頭の xml宣言／Task 行は画面外のため横東と同形式で補完）
+・17_AIスコアリング処理（審査結果）：画面が Months の途中（July〜December）から始まっており、
+  StartBoundary・Weeks・DaysOfWeek・1〜6月が写っていないため XML ファイルは作成していない。
+  画面で確認できた値：
+    UserId=S-1-5-21-3700560880-2294385592-3687255252-1005 / LogonType=Password / RunLevel=HighestAvailable
+    StartWhenAvailable=true / UseUnifiedSchedulingEngine=true / ExecutionTimeLimit=PT72H
+    Command=C:\common\batches\TaskTrg_no_lockck.bat
+    Arguments=C:\common\parm\TaskAuto17.txt NOLOCK
+    WorkingDirectory=C:\common\batches
+・手動実行_AML01〜03.xml：<URI> が無いエクスポートのためタスク名は不明。ファイル名は便宜上の名前
+  aml01 FLRKM001（北海道）／aml02 A5RKM001（七十七）／aml03 OFRKM001（北陸）
+・手動実行 AML04〜10 のXMLは未入手
+・陸道七の環境定義書には手動実行タスクの記載が無い（横東には AML01〜10 の記載あり）
+・16/17 の UserId のSIDは横東と同一
+・原本：core-fs …/03_小口案件/2026/20260105_共同機構AIスコアリング/70%20移行/filter/資材/検証…
