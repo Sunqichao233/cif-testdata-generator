@@ -105,6 +105,9 @@ foreach ($line in ($defLines | Select-Object -Skip 1)) {
 if ($Tasks.Count -eq 0) { throw 'タスク定義.csv にタスクがありません。' }
 Write-Info ('タスク定義      : {0} 件' -f $Tasks.Count)
 
+$sw0 = [Diagnostics.Stopwatch]::StartNew()
+function Write-Step([string]$msg) { Write-Host ('  [{0:mm\:ss}] {1}' -f $sw0.Elapsed, $msg) -ForegroundColor Cyan }
+
 # ---------- 入力ファイル ----------
 if (-not $Paths -or $Paths.Count -eq 0) { $Paths = @(Join-Path $ToolRoot '入力') }
 $files = @()
@@ -140,7 +143,7 @@ $StoreEv  = Join-Path $StoreDir 'イベント.tsv'
 $StoreRg  = Join-Path $StoreDir 'ログ範囲.tsv'
 $fmtT     = 'yyyy-MM-dd HH:mm:ss.fffffff'
 $Inv      = [Globalization.CultureInfo]::InvariantCulture
-New-Item -ItemType Directory -Path $CutDir, $StoreDir -Force | Out-Null
+New-Item -ItemType Directory -Path $StoreDir -Force | Out-Null
 function Get-EvKey($t, $lv, $id, $tx) { return ('{0}|{1}|{2}|{3}' -f $t.Ticks, $lv, $id, $tx) }
 $stored = 0
 if (Test-Path $StoreEv) {
@@ -163,6 +166,7 @@ if (Test-Path $StoreRg) {
 }
 Write-Info ('前回までの蓄積  : {0} 件' -f $stored)
 
+Write-Step 'ログを読み込んでいます（1ファイル数秒〜十数秒かかります）…'
 foreach ($f in $files) {
     $enc = Get-FileEncoding $f
     $sr = New-Object System.IO.StreamReader($f, $enc, $true)
@@ -242,6 +246,7 @@ function Get-Class([DateTime]$d) {
 }
 $WeekJa = @{ Sunday='日'; Monday='月'; Tuesday='火'; Wednesday='水'; Thursday='木'; Friday='金'; Saturday='土' }
 
+Write-Step '集計しています…'
 # ---------- 00 メッセージ一覧 ----------
 $msgStat = @{}
 foreach ($e in $events) {
@@ -313,6 +318,7 @@ foreach ($d in $days) {
     }
 }
 
+Write-Step '01〜03 の CSV を出力しています…'
 # ---------- 01 処理時間一覧 ----------
 Write-Csv (Join-Path $OutDir '01_処理時間一覧.csv') `
     @('業務日','曜日','区分','No','タスク名','開始','終了','処理時間','処理時間(秒)','開始ログ件数','終了ログ件数','備考') `
@@ -365,6 +371,8 @@ if ($baseRows.Count -eq 0) {
     Write-Info ('最遅／最速の判定 : 基準タスク「{0}」の{1}' -f $BaseTask, $CompareBy)
 }
 
+Write-Step '切り出しファイルを出力しています…'
+New-Item -ItemType Directory -Path $CutDir -Force | Out-Null
 # ---------- 切り出し（前任者と同じ形式） ----------
 foreach ($cls in @('M', 'MTWTFS', 'S')) {
     foreach ($tk in $Tasks) {
@@ -400,3 +408,5 @@ foreach ($cls in @('M', 'MTWTFS', 'S')) {
 Write-Info ('業務日           : {0} 〜 {1}（{2} 日）' -f $days[0].ToString('yyyy/MM/dd'), $days[-1].ToString('yyyy/MM/dd'), @($days).Count)
 Write-Host ''
 Write-Info ('出力先 : ' + $OutDir)
+Write-Host ''
+Write-Host ('  ★ 完了しました（{0:mm\:ss}）。すべてのファイルを出力しました。' -f $sw0.Elapsed) -ForegroundColor Green
