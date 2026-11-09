@@ -1,0 +1,37 @@
+※ スクリーンショット（2026/11/09）から書き起こしたログ形式のサンプル。ホスト名・SID はダミーに置換済み。
+※ 実データは Amazon WorkSpaces 内にあり、ここには置かない。
+
+Event[0]
+  Log Name: Application
+  Source: OCULUSBT
+  Date: 2026-02-28T22:39:06.5810000Z
+  Event ID: 999
+  Task: N/A
+  Level: 情報
+  Opcode: 情報
+  Keyword: クラシック
+  User: S-1-5-21-0000000000-0000000000-0000000000-1001
+  User Name: HOSTXXX\OCULUS01
+  Computer: HOSTXXX
+  Description:
+OCULUS-I COM900102 イベントログのエクスポートを開始します。
+
+Event[1]
+  Log Name: Application
+  Source: OCULUSBT
+  Date: 2026-02-28T22:39:06.5660000Z
+  Event ID: 999
+  Task: N/A
+  Level: 情報
+  Opcode: 情報
+  Keyword: クラシック
+  User: S-1-5-21-0000000000-0000000000-0000000000-1001
+  User Name: HOSTXXX\OCULUS01
+  Computer: HOSTXXX
+  Description:
+OCULUS-I COM900100 長期保管用ファイルバックアップ処理を開始します。
+
+Event[2]
+  Log Name: Application
+  Source: OCULUSBT
+  Date: 2026-02-28T22:39:06.5030000Z
