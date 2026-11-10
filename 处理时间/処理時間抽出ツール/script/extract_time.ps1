@@ -4,7 +4,7 @@
     イベントビューアーのログ（ev_app_YYYYMMDDHHII.log）を複数まとめて読み込み、
     タスクごとの開始・終了時刻と処理時間を一覧にする。
 
-    入力 : ログファイル または フォルダ（複数可）。省略時はツール直下の「入力」フォルダ。
+    入力 : ログファイル または フォルダ（複数可）を .bat にドラッグ＆ドロップする。
            フォルダの場合は中の ev_app_*.log をすべて読む（サブフォルダも含む）。
     出力 : 出力\ 以下（毎回同じフォルダ）
            同じ名前のファイルがある場合は、置き換えではなく更新する。
@@ -110,7 +110,9 @@ $sw0 = [Diagnostics.Stopwatch]::StartNew()
 function Write-Step([string]$msg) { Write-Host ('  [{0:mm\:ss}] {1}' -f $sw0.Elapsed, $msg) -ForegroundColor Cyan }
 
 # ---------- 入力ファイル ----------
-if (-not $Paths -or $Paths.Count -eq 0) { $Paths = @(Join-Path $ToolRoot '入力') }
+if (-not $Paths -or $Paths.Count -eq 0) {
+    throw 'ログファイルが指定されていません。testdata フォルダ、またはログファイル（ev_app_*.log）を .bat にドラッグ＆ドロップしてください。'
+}
 $files = @()
 foreach ($p in $Paths) {
     if (-not $p) { continue }
