@@ -262,9 +262,8 @@ foreach ($e in $events) {
     }
     $s = $msgStat[$k]; $s.Count++; $s.Last = $e.Time
 }
-Write-Csv (Join-Path $OutDir '00_メッセージ一覧.csv') `
-    @('レベル','メッセージID','メッセージ（例）','件数','初回','最終','該当タスク') `
-    ($msgStat.Values | Sort-Object Id, Text | ForEach-Object {
+# 00 は 01〜03 と一緒に最後に出力する（途中の状態のフォルダを見て「終わった」と誤解しないように）
+$msgRows = @($msgStat.Values | Sort-Object Id, Text | ForEach-Object {
         ,@($_.Level, $_.Id, $_.Text, $_.Count, (Fmt-Dt $_.First), (Fmt-Dt $_.Last), $_.Task) })
 
 # ---------- 業務日 × タスク ----------
@@ -283,23 +282,41 @@ foreach ($d in $days) {
     $fullDay[$d] = [bool](@($merged | Where-Object { $_[0] -le $from -and $_[1] -ge $to }).Count)
 }
 
-$byDay = @{}
+# イベントを1回だけ走査して、業務日×タスクごとに開始・終了・エラーを集める（高速化）
+# 同じ本文のメッセージは何度も出てくるので、どのタスクの開始／終了に当たるかをキャッシュする
+$matchCache = @{}
+$agg = @{}
 foreach ($e in $events) {
+    $hits = $matchCache[$e.Text]
+    if ($null -eq $hits) {
+        $hits = @(for ($i = 0; $i -lt $Tasks.Count; $i++) {
+            $isS = $Tasks[$i].StartRx.IsMatch($e.Text); $isE = $Tasks[$i].EndRx.IsMatch($e.Text)
+            if ($isS -or $isE) { ,@($i, $isS, $isE) }
+        })
+        $matchCache[$e.Text] = $hits
+    }
+    if ($hits.Count -eq 0) { continue }
     $d = Get-BizDay $e.Time
-    if (-not $byDay.ContainsKey($d)) { $byDay[$d] = New-Object System.Collections.Generic.List[object] }
-    $byDay[$d].Add($e)
+    foreach ($h in $hits) {
+        $k = '{0:yyyyMMdd}|{1}' -f $d, $h[0]
+        $a = $agg[$k]
+        if ($null -eq $a) { $a = @{ S = $null; E = $null; NS = 0; NE = 0; Err = 0 }; $agg[$k] = $a }
+        if ($h[1]) { if ($a.NS -eq 0) { $a.S = $e }; $a.NS++ }
+        if ($h[2]) { $a.E = $e; $a.NE++ }
+        if ($e.Level -eq 'E') { $a.Err++ }
+    }
 }
 
 $result = New-Object System.Collections.Generic.List[object]
 foreach ($d in $days) {
     $cls = Get-Class $d
-    foreach ($tk in $Tasks) {
-        $st = @($byDay[$d] | Where-Object { $tk.StartRx.IsMatch($_.Text) })
-        $en = @($byDay[$d] | Where-Object { $tk.EndRx.IsMatch($_.Text) })
-        $errs = @($byDay[$d] | Where-Object { $_.Level -eq 'E' -and ($tk.StartRx.IsMatch($_.Text) -or $tk.EndRx.IsMatch($_.Text)) })
-        if ($st.Count -eq 0 -and $en.Count -eq 0) { continue }
-        $s = if ($st.Count) { $st[0] } else { $null }
-        $e = if ($en.Count) { $en[$en.Count - 1] } else { $null }
+    for ($ti = 0; $ti -lt $Tasks.Count; $ti++) {
+        $tk = $Tasks[$ti]
+        $a = $agg[('{0:yyyyMMdd}|{1}' -f $d, $ti)]
+        if ($null -eq $a) { continue }
+        $st = @{ Count = $a.NS }; $en = @{ Count = $a.NE }; $errs = @{ Count = $a.Err }
+        $s = $a.S
+        $e = $a.E
         # 開始・終了パターンが同じでログが1件しかない場合、同じログを開始と終了の両方に使わない
         if ($s -and $e -and [object]::ReferenceEquals($s, $e)) { $e = $null }
         $note = @()
@@ -321,7 +338,8 @@ foreach ($d in $days) {
     }
 }
 
-Write-Step '01〜03 の CSV を出力しています…'
+Write-Step '00〜03 の CSV を出力しています…'
+Write-Csv (Join-Path $OutDir '00_メッセージ一覧.csv') @('レベル','メッセージID','メッセージ（例）','件数','初回','最終','該当タスク') $msgRows
 # ---------- 01 処理時間一覧 ----------
 Write-Csv (Join-Path $OutDir '01_処理時間一覧.csv') `
     @('業務日','曜日','区分','No','タスク名','開始','終了','処理時間','処理時間(秒)','開始ログ件数','終了ログ件数','備考') `
