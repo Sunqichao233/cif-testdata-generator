@@ -28,6 +28,7 @@ $DayStart       = '07:00'        # 業務日の開始時刻。この時刻より
 $Source         = 'OCULUSBT'     # 対象のイベントソース
 $BaseTask       = '業後処理'     # 最遅／最速を判定する基準タスク（タスク定義.csv のタスク名）
 $CompareBy      = '終了時刻'     # 最遅／最速の判定基準：'終了時刻' または '処理時間'
+$GroupBy        = '月'           # 最遅／最速を判定する単位：'月'（月ごと）／'月×区分'／'区分'（全期間を区分ごと）
 $SaturdayClass  = 'MTWTFS'       # 土曜日の区分（M=第1月曜／MTWTFS=平日／S=日曜）
 $FilePattern    = 'ev_app_*.log' # フォルダ指定時に読み込むファイル名
 $OutCharset     = 'utf-8-bom'    # 出力の文字コード：'utf-8-bom'（Excel でそのまま開ける・文字化けしない）または 932（Shift_JIS）
@@ -350,25 +351,31 @@ if ($baseRows.Count -eq 0) {
     Write-Warning "基準タスク「$BaseTask」の開始・終了がそろった日がないため、03 は出力しません。"
 } else {
     $key = if ($CompareBy -eq '処理時間') { { $_.Dur.Ticks } } else { { ($_.End - $_.Day).Ticks } }
+    # 判定する単位（グループ）を決める
+    $grpOf = switch ($GroupBy) {
+        '月×区分' { { $_.Day.ToString('yyyy/MM') + ' ' + $_.Class } }
+        '区分'    { { $_.Class } }
+        default   { { $_.Day.ToString('yyyy/MM') } }          # '月'
+    }
+    $fmtDay = { param($d) '{0}({1}・{2})' -f $d.ToString('yyyy/MM/dd'), $WeekJa[[string]$d.DayOfWeek], (Get-Class $d) }
     $out = New-Object System.Collections.Generic.List[object]
-    foreach ($cls in @('M', 'MTWTFS', 'S')) {
-        $b = @($baseRows | Where-Object { $_.Class -eq $cls } | Sort-Object $key)
-        if ($b.Count -eq 0) { continue }
+    foreach ($g in ($baseRows | Group-Object -Property $grpOf | Sort-Object Name)) {
+        $b = @($g.Group | Sort-Object $key)
         $fast = $b[0]; $slow = $b[$b.Count - 1]
         foreach ($tk in $Tasks) {
             $xs = $result | Where-Object { $_.Day -eq $slow.Day -and $_.No -eq $tk.No } | Select-Object -First 1
             $xf = $result | Where-Object { $_.Day -eq $fast.Day -and $_.No -eq $tk.No } | Select-Object -First 1
             if (-not $xs -and -not $xf) { continue }
             $diff = if ($xs -and $xf -and $xs.Dur -and $xf.Dur) { Fmt-Span ($xs.Dur - $xf.Dur) } else { '' }
-            $out.Add(@($cls, $tk.No, $tk.Name,
-                $slow.Day.ToString('yyyy/MM/dd'), (Fmt-Dt $xs.Start), (Fmt-Dt $xs.End), (Fmt-Span $xs.Dur),
-                $fast.Day.ToString('yyyy/MM/dd'), (Fmt-Dt $xf.Start), (Fmt-Dt $xf.End), (Fmt-Span $xf.Dur),
+            $out.Add(@($g.Name, $b.Count, $tk.No, $tk.Name,
+                (& $fmtDay $slow.Day), (Fmt-Dt $xs.Start), (Fmt-Dt $xs.End), (Fmt-Span $xs.Dur),
+                (& $fmtDay $fast.Day), (Fmt-Dt $xf.Start), (Fmt-Dt $xf.End), (Fmt-Span $xf.Dur),
                 $diff))
         }
     }
     Write-Csv (Join-Path $OutDir ('03_最遅最速_' + $BaseTask + '.csv')) `
-        @('区分','No','タスク名','最遅日','開始','終了','処理時間','最速日','開始','終了','処理時間','差（最遅－最速）') $out
-    Write-Info ('最遅／最速の判定 : 基準タスク「{0}」の{1}' -f $BaseTask, $CompareBy)
+        @($GroupBy,'対象日数','No','タスク名','最遅日','開始','終了','処理時間','最速日','開始','終了','処理時間','差（最遅－最速）') $out
+    Write-Info ('最遅／最速の判定 : {0}ごとに、基準タスク「{1}」の{2}' -f $GroupBy, $BaseTask, $CompareBy)
 }
 
 Write-Step '切り出しファイルを出力しています…'
