@@ -31,9 +31,6 @@ desktop.ini
 **/AIScoringAPICall.properties
 **/AIScoringImport.properties
 
-# 保守運用の当番資料（Webexの認証情報・社内DL・氏名を含むため追跡しない）
-早番/
-
 # 処理時間一覧化：イベントビューアーのログ（顧客環境のログのため追跡しない）
 处理时间/実データ/
 **/ev_app_*.log
