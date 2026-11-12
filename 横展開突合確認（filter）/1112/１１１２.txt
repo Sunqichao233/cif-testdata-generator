@@ -1,0 +1,147 @@
+阿部さん孫さん
+
+確認させていただきありがとうございました。
+以下に赤字で追記しました。
+資材・実機は問題なし。ヒアシ・設計書に一部誤記がある。
+
+よろしくお願いいたします。
+
+・・・・・・・・・・・・・・・・・・・・・・・・・・・・・・・・・・・・・・・・
+NTTデータ ルウィーブ 株式会社
+アドバンスド・ソリューション事業本部 インテグレーション第一開発部
+小島 康俊 (Kojima Yasutoshi)
+Tel:044-223-3756
+Fax:044-245-0711
+Email: mailto: Yasutoshi.Kojima@nttdata-luweave.com
+URL: https://www.nttdata-luweave.com/
+・・・・・・・・・・・・・・・・・・・・・・・・・・・・・・・・・・・・・・・・
+
+From: 小島 康俊/KOJIMA, YASUTOSHI (ndlc) 
+Sent: Tuesday, November 10, 2026 10:23 PM
+To: 孫 キ超/Sun, Qichao (ndlc) <sunqichao@nttdata-luweave.com>; 阿部 杏子/Abe, Kyoko (ndlc) <abekyoko@nttdata-luweave.com>
+Cc: 橋本 勝利/Hashimoto, Katsutoshi (ndlc) <hashimotokatsk@nttdata-luweave.com>
+Subject: RE: 共同機構接続ーmonitor横展開指摘対応完了のご報告
+
+孫さん
+
+ありがとうございます。
+遅くなり申し訳ございません
+
+Flaseが検出されたものについて以下と思量しますが
+阿部さんまじえて一確認させてください。
+
+■突合結果（要確認事項）
+
+接続情報
+　AIScoringConfig.properties・AIScoringImport.properties は、5スキーマとも設計書と一致しています。
+→問題なし
+
+API情報（AIScoringAPICall.properties）
+　・5ファイル中4ファイルで、hostname／user／password がパッケージのテンプレート値のままです。設定済みは横東 aml02 のみです。
+→ミニ機の資材について、当初は5行ともダミー設定、
+次に東日本のみ本番と同じものに入れ替え、
+最後に他4行も本番と同じものに入れ替えたためと思われる。
+→そう。問題なし
+
+　・inputpath は5ファイルとも、設計書の値にある「amlXX\export\」が含まれていません。。
+→inputpath、outputpathが設計書と資材で一致しないことについて、
+資材が正で良いか要確認、および設計書要修正。
+※区切りがスラッシュか円かと、パス自体の差異
+→資材は既存がスラッシュなのでそれにならっている
+設計書はWindowsなので\にした。問題なし
+パスは資材が正（設計書が誤記）のはず。実機為念確認予定。
+
+
+HULFT設定
+　・転送グループIDに不一致があります（詳細は HULFT 突合ファイルをご参照ください）。
+→不一致なし。OK
+
+ポート番号相違（ヒアシvs環境定義）
+→環境定義が正（ヒアリングシートが最新化されていない）と思量
+共同機構対応で変更があったものではなく、横浜銀行の既存定義である。
+また、HULFT疎通確認にて環境定義の設定値で問題ないことを確認済み。
+→上記の通り。共同機構ヒアシの誤記。ヒアシを直す(?)
+
+詳細ホスト情報のホスト名不一致（ヒアシvs環境定義）
+→ヒアシが正、環境定義が誤と見受けられる。
+実機の設定が正しいか確認が必要。
+→環境定義書誤記。資材はOK
+
+タスク設定
+　・TaskAuto17.txt：10行すべてで、タスク名の後半が設計書と資材で異なります。
+　　設計書「AIスコアリング処理（審査結果）」、資材「AIスコアリングデータ抽出（審査結果）」です。
+　　タスクスケジューラ側の名前も資材と同じため、設計書の誤記の可能性があります。
+→資材/環境が正。設計書要修正
+
+　・TaskAuto16.txt：イベントID発行の行について、設計書には「AIスコアリング処理－」が記載されていません（資材には付いています）。
+→資材/環境が正。設計書要修正
+
+実行ユーザ
+→OCULUS01が資材（タスク定義xmlファイル）上、OCULUS01に相当するSID表記されているものと思われる。
+手順にて、実行ユーザがOCULUS01であることを確認しているため問題なし
+→上記の通り。
+
+よろしくお願いいたします。
+
+・・・・・・・・・・・・・・・・・・・・・・・・・・・・・・・・・・・・・・・・
+NTTデータ ルウィーブ 株式会社
+アドバンスド・ソリューション事業本部 インテグレーション第一開発部
+小島 康俊 (Kojima Yasutoshi)
+Tel:044-223-3756
+Fax:044-245-0711
+Email: mailto: Yasutoshi.Kojima@nttdata-luweave.com
+URL: https://www.nttdata-luweave.com/
+・・・・・・・・・・・・・・・・・・・・・・・・・・・・・・・・・・・・・・・・
+
+From: 孫 キ超/Sun, Qichao (ndlc) <sunqichao@nttdata-luweave.com> 
+Sent: Monday, November 9, 2026 12:10 PM
+To: 阿部 杏子/Abe, Kyoko (ndlc) <abekyoko@nttdata-luweave.com>; 小島 康俊/KOJIMA, YASUTOSHI (ndlc) <yasutoshi.kojima@nttdata-luweave.com>
+Cc: 橋本 勝利/Hashimoto, Katsutoshi (ndlc) <hashimotokatsk@nttdata-luweave.com>
+Subject: 共同機構接続ーmonitor横展開指摘対応完了のご報告
+
+小島さん
+
+お疲れ様です。IKIの孫です。
+
+共同機構接続ーmonitor横展開突合確認（AIスコアリング：横東・陸道七）が完了しましたので、ご報告いたします。
+
+■対応内容
+ヒアリングシート（①）、環境定義書（②）、V5.0 現地リリース資材（④）を、以下の4項目について突合しました。
+
+確認項目              突合パターン       対象資材
+接続情報              ①-②、②-④        AIScoringConfig.properties（5スキーマ）、AIScoringImport.properties
+API情報 ①-②、②-④        AIScoringAPICall.properties（5スキーマ）
+HULFT設定         ①-②、②-④        配信管理情報、転送グループ情報
+タスク設定           ②-④      TaskAuto16.txt、TaskAuto17.txt、タスクスケジューラ登録（XMLエクスポート）
+※5スキーマ：横東 aml01（横浜）・aml02（東日本）、陸道七 aml01（北海道）・aml02（七十七）・aml03（北陸）
+
+■成果物
+格納先：\\core-fs\Projects\International\CUST\NTTD(MEJAR)\03_小口案件\2026\20260105_共同機構AIスコアリング\90 トラブル対応\リリース箇所総チェック\filter
+・【横東】／【陸道七】ヒアリングシート、環境定義書突合せ.xlsx
+・【横東】／【陸道七】HULFT_環境定義書、資材突合せ.xlsx
+・【横東】／【陸道七】設定ファイル_環境定義書、資材突合せ.xlsx
+・【横東】／【陸道七】タスク設定_環境定義書、資材突合せ.xlsx
+
+突合シートは、②資材の列に値を入れると比較列（EXACT関数）で一致・不一致が自動で判定される形式にしています。
+
+■突合結果（要確認事項）
+
+接続情報
+　AIScoringConfig.properties・AIScoringImport.properties は、5スキーマとも設計書と一致しています。
+
+API情報（AIScoringAPICall.properties）
+　・5ファイル中4ファイルで、hostname／user／password がパッケージのテンプレート値のままです。設定済みは横東 aml02 のみです。
+　・inputpath は5ファイルとも、設計書の値にある「amlXX\export\」が含まれていません。。
+
+HULFT設定
+　・転送グループIDに不一致があります（詳細は HULFT 突合ファイルをご参照ください）。
+
+タスク設定
+　・TaskAuto17.txt：10行すべてで、タスク名の後半が設計書と資材で異なります。
+　　設計書「AIスコアリング処理（審査結果）」、資材「AIスコアリングデータ抽出（審査結果）」です。
+　　タスクスケジューラ側の名前も資材と同じため、設計書の誤記の可能性があります。
+　・TaskAuto16.txt：イベントID発行の行について、設計書には「AIスコアリング処理－」が記載されていません（資材には付いています）。
+
+ご確認のほど、よろしくお願いいたします。
+
+孫
